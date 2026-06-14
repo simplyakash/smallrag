@@ -133,6 +133,9 @@ First edit `agentic_ai_config.json`:
 {
   "openai_api_key": "your_api_key_here",
   "openai_model": "gpt-4o-mini",
+  "llm_provider": "openai",
+  "gemini_api_key": "your_gemini_api_key_here",
+  "gemini_model": "gemini-2.0-flash",
   "local_model": "google/flan-t5-small"
 }
 ```
@@ -238,6 +241,18 @@ This file is ignored by Git through `.gitignore`, so your real API key should
 stay local. If the config file does not contain a key, the code falls back to
 the `OPENAI_API_KEY` environment variable.
 
+To use Gemini instead of OpenAI, set:
+
+```json
+{
+  "llm_provider": "gemini",
+  "gemini_api_key": "your_gemini_api_key_here",
+  "gemini_model": "gemini-2.0-flash"
+}
+```
+
+`GEMINI_API_KEY` is also supported as an environment variable.
+
 The `local_model` value is used only by `--planner local-llm` and does not need
 an API key. The first run may download the model from Hugging Face, then reuse
 the local cache.
@@ -247,3 +262,7 @@ For fully local loading, run `--download-local-model` once. After
 with `local_files_only=True`.
 
 python src/agentic_ai_example.py --planner local-llm "How many paid leave days do employees get?"
+
+Deploy:
+uvicorn src.agentic_ai_service:app --host 0.0.0.0 --port 8000
+

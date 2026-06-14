@@ -1,15 +1,13 @@
 import chromadb
-from chromadb.utils import embedding_functions
-from openai import OpenAI
+
+from src.rag_chroma_utils import build_embedding_function
 
 # ----------------------------
 # 1. Persistent DB Setup
 # ----------------------------
 chroma_client = chromadb.PersistentClient(path="./chroma_storage")
 
-embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(
-    model_name="all-MiniLM-L6-v2"
-)
+embedding_function = build_embedding_function()
 
 collection = chroma_client.get_or_create_collection(
     name="company_docs",

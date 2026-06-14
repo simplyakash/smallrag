@@ -1,11 +1,27 @@
+import os
+
 import chromadb
-from chromadb.utils import embedding_functions
 from datasets import load_dataset
+
+from src.rag_chroma_utils import build_embedding_function
+
+
+AGNEWS_SAMPLE_SIZE = int(os.getenv("AGNEWS_SAMPLE_SIZE", "50"))
+AGNEWS_BATCH_SIZE = int(os.getenv("AGNEWS_BATCH_SIZE", "10"))
+
+
+def load_ag_news_dataset():
+    split = f"train[:{AGNEWS_SAMPLE_SIZE}]"
+    try:
+        return load_dataset("ag_news", split=split)
+    except Exception:
+        return load_dataset("fancyzhx/ag_news", split=split)
+
 
 # ----------------------------
 # Load Real Dataset
 # ----------------------------
-dataset = load_dataset("ag_news", split="train[:500]")  # first 500 sample\s
+dataset = load_ag_news_dataset()
 print(f"Loaded {len(dataset)} documents from AG News dataset.")
 print("Sample document:", dataset[0])
 
@@ -17,9 +33,7 @@ ids = [f"doc_{i}" for i in range(len(documents))]
 # ----------------------------
 chroma_client = chromadb.PersistentClient(path="../chroma_storage")
 
-embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(
-    model_name="all-MiniLM-L6-v2"
-)
+embedding_function = build_embedding_function()
 
 collection = chroma_client.get_or_create_collection(
     name="agnews_collection",
@@ -30,9 +44,12 @@ collection = chroma_client.get_or_create_collection(
 # Store Documents
 # ----------------------------
 
-collection.add(
-    documents=documents,
-    ids=ids
-)
+for start in range(0, len(documents), AGNEWS_BATCH_SIZE):
+    end = start + AGNEWS_BATCH_SIZE
+    collection.upsert(
+        documents=documents[start:end],
+        ids=ids[start:end],
+    )
+    print(f"Stored documents {start + 1}-{min(end, len(documents))}.")
 
 print("AG News documents stored successfully!")
