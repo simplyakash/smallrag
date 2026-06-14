@@ -161,25 +161,37 @@ class LLMPlanner:
         tools: ToolRegistry,
         model: str = "gpt-4o-mini",
         api_key: str | None = None,
+        base_url: str | None = None,
+        api_env_var: str = "OPENAI_API_KEY",
+        provider_name: str = "OpenAI",
     ) -> None:
-        LOGGER.info("[LLMPlanner.__init__] initializing OpenAI planner model=%s", model)
-        resolved_api_key = api_key or os.getenv("OPENAI_API_KEY")
+        LOGGER.info(
+            "[LLMPlanner.__init__] initializing %s planner model=%s",
+            provider_name,
+            model,
+        )
+        resolved_api_key = api_key or os.getenv(api_env_var)
         if not resolved_api_key:
             raise ValueError(
-                "OpenAI API key not found. Add it to agentic_ai_config.json "
-                "or set OPENAI_API_KEY."
+                f"{provider_name} API key not found. Add it to "
+                f"agentic_ai_config.json or set {api_env_var}."
             )
 
         from openai import OpenAI
 
-        self.client = OpenAI(api_key=resolved_api_key)
+        if base_url:
+            self.client = OpenAI(api_key=resolved_api_key, base_url=base_url)
+        else:
+            self.client = OpenAI(api_key=resolved_api_key)
         self.model = model
         self.tools = tools
-        LOGGER.info("[LLMPlanner.__init__] OpenAI client initialized")
+        self.provider_name = provider_name
+        LOGGER.info("[LLMPlanner.__init__] %s client initialized", provider_name)
 
     def next_action(self, state: AgentState) -> AgentAction:
         LOGGER.info(
-            "[LLMPlanner.next_action] requesting action from OpenAI model=%s observations=%d",
+            "[LLMPlanner.next_action] requesting action from %s model=%s observations=%d",
+            self.provider_name,
             self.model,
             len(state.observations),
         )
@@ -602,17 +614,34 @@ def build_agent(
         LOGGER.info("[build_agent] using RuleBasedPlanner")
         planner: Planner = RuleBasedPlanner()
     elif planner_type == "llm":
-        api_key = config.get("openai_api_key")
-        configured_model = config.get("openai_model")
-        LOGGER.info(
-            "[build_agent] using LLMPlanner model=%s",
-            configured_model or model or "gpt-4o-mini",
-        )
-        planner = LLMPlanner(
-            tools=tools,
-            model=configured_model or model or "gpt-4o-mini",
-            api_key=api_key,
-        )
+        llm_provider = config.get("llm_provider", "openai").lower()
+        if llm_provider == "gemini":
+            api_key = config.get("gemini_api_key")
+            configured_model = config.get("gemini_model")
+            LOGGER.info(
+                "[build_agent] using Gemini-compatible LLMPlanner model=%s",
+                configured_model or model or "gemini-2.0-flash",
+            )
+            planner = LLMPlanner(
+                tools=tools,
+                model=configured_model or model or "gemini-2.0-flash",
+                api_key=api_key,
+                base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+                api_env_var="GEMINI_API_KEY",
+                provider_name="Gemini",
+            )
+        else:
+            api_key = config.get("openai_api_key")
+            configured_model = config.get("openai_model")
+            LOGGER.info(
+                "[build_agent] using OpenAI LLMPlanner model=%s",
+                configured_model or model or "gpt-4o-mini",
+            )
+            planner = LLMPlanner(
+                tools=tools,
+                model=configured_model or model or "gpt-4o-mini",
+                api_key=api_key,
+            )
     elif planner_type == "local-llm":
         configured_model_path = config.get("local_model_path")
         configured_model = config.get("local_model")
