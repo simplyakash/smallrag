@@ -29,13 +29,13 @@ DEFAULT_DATA_FILE_URL = (
     "raw/review_categories/All_Beauty.jsonl"
 )
 
-
 # Tiny built-in interaction dataset used when you run:
 # python -m src.amazon_recommendation_mvp --sample
 #
 # Each row means: this user interacted with this product.
 # In this MVP, all sample events are purchases because purchases are a strong
 # shopping recommendation signal.
+
 SAMPLE_EVENTS = [
     {"user_id": "u1", "product_id": "p1", "event_type": "purchase", "rating": "5", "timestamp": "2026-01-01"},
     {"user_id": "u1", "product_id": "p2", "event_type": "purchase", "rating": "4", "timestamp": "2026-01-02"},
@@ -50,6 +50,7 @@ SAMPLE_EVENTS = [
 # Tiny built-in product catalog for the sample dataset above.
 # The real downloaded dataset gives us product IDs and ratings, but product
 # metadata can be limited, so this sample keeps titles easy to read.
+
 SAMPLE_PRODUCTS = {
     "p1": {"product_id": "p1", "title": "Wireless Mouse", "category": "Electronics"},
     "p2": {"product_id": "p2", "title": "USB Keyboard", "category": "Electronics"},
@@ -58,18 +59,18 @@ SAMPLE_PRODUCTS = {
     "p5": {"product_id": "p5", "title": "Water Bottle", "category": "Sports"},
 }
 
-
 # Create the local data directory if it does not already exist.
 # This keeps all generated CSV files under `data/amazon_recommendation`.
 # `parents=True` creates parent folders as needed, and `exist_ok=True` avoids
 # errors when the folder already exists.
+
 def ensure_data_dir() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-
 
 # Write a list of dictionaries to a CSV file.
 # `fieldnames` controls the output column order.
 # This helper is reused for both `events.csv` and `products.csv`.
+
 def write_csv(path: Path, rows: list[dict], fieldnames: list[str]) -> None:
     # Make sure the target folder exists before opening the file.
     ensure_data_dir()
@@ -83,19 +84,20 @@ def write_csv(path: Path, rows: list[dict], fieldnames: list[str]) -> None:
         writer.writeheader()
         writer.writerows(rows)
 
-
 # Convert one raw Amazon review row into two clean records:
 # 1. An event record: user_id, product_id, event_type, rating, timestamp.
 # 2. A product record: product_id, title, category.
 #
 # Different Amazon datasets use different field names, so this function checks
 # several possible names for the same concept, such as `asin` or `product_id`.
+
 def normalize_amazon_review(row: dict) -> tuple[dict, dict] | None:
     # Try all known user ID field names.
     user_id = row.get("customer_id") or row.get("reviewerID") or row.get("user_id")
 
     # Try all known product ID field names.
     # `asin` is Amazon's product identifier.
+
     product_id = row.get("product_id") or row.get("asin") or row.get("parent_asin")
 
     # If either key is missing, we cannot use the row for recommendations.
@@ -138,6 +140,7 @@ def normalize_amazon_review(row: dict) -> tuple[dict, dict] | None:
 #
 # `limit` controls how many interactions we keep so the script runs quickly
 # on a laptop or small development machine.
+
 def download_amazon_reviews(
     limit: int,
     dataset: str,
@@ -147,6 +150,7 @@ def download_amazon_reviews(
 ) -> None:
     # Import here so the rest of the script can still run in sample mode even
     # if the optional Hugging Face dependency is not installed.
+    
     try:
         from datasets import load_dataset
     except ImportError as exc:
@@ -461,10 +465,11 @@ def main() -> None:
     # Always run recommendation after any requested data setup.
     print_recommendations(user_id=args.user_id, limit=args.top_k)
 
-
 # Python only runs this block when the file is executed as a script:
 # python -m src.amazon_recommendation_mvp
 #
 # This prevents `main()` from running if another Python file imports this file.
+
 if __name__ == "__main__":
     main()
+

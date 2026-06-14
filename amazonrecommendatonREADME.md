@@ -69,7 +69,223 @@ The online recommendation path follows a multi-stage recommendation architecture
 Candidate Generation → Ranking → Re-Ranking → Final Recommendations
 ```
 
+## 4.1 Task and Technology Map
+
+This section separates the tools used in the local learning project from the tools normally used in a production Amazon-scale recommendation platform.
+
+### Local MVP Tools Used in This Repository
+
+| Task | Technology Used | Why It Is Used |
+| --- | --- | --- |
+| Download small Amazon dataset | `datasets` | Streams a small Amazon Reviews sample from Hugging Face. |
+| Store local sample data | `CSV`, `data/amazon_recommendation/` | Keeps `events.csv` and `products.csv` simple and easy to inspect. |
+| Basic MVP recommendations | Python standard library | Builds item-to-item collaborative filtering without heavy dependencies. |
+| User-product interaction modeling | Item-to-item collaborative filtering | Finds products that co-occur in user histories. |
+| Two-tower retrieval model | `PyTorch` | Builds separate user and product neural-network towers. |
+| User embeddings | `torch.nn.Embedding` | Converts user IDs into dense vectors. |
+| Product embeddings | `torch.nn.Embedding` | Converts product IDs into dense vectors. |
+| No-training architecture demo | Deterministic random PyTorch weights | Shows the two-tower and FAISS flow without training. |
+| No-training useful retrieval | `scikit-learn` TF-IDF | Builds lightweight product/user profile text embeddings without PyTorch. |
+| Optional heavy text retrieval | `sentence-transformers/all-MiniLM-L6-v2` | Uses a pretrained transformer checkpoint when the machine has enough disk. |
+| Product vector retrieval | `FAISS` / `faiss-cpu` | Searches nearest product embeddings quickly. |
+| Recommendation API | `FastAPI` | Exposes `/recommend` and `/health` endpoints. |
+| Local API server | `Uvicorn` | Runs the FastAPI app locally. |
+| Request/response validation | `Pydantic` | Defines the API request schema. |
+| Numeric arrays for FAISS | `NumPy` | Converts text embeddings into FAISS-compatible arrays. |
+| Production-style validation hook | `Great Expectations` | Provides a place for schema and data quality checks before building the index. |
+| Production-style experiment metadata | `MLflow` | Logs index build metadata and artifact information. |
+| Optional model training | `PyTorch`, pairwise ranking loss | Learns user/product embeddings from positive and negative examples. |
+| Model checkpointing | `torch.save` | Saves two-tower weights and ID mappings locally. |
+| Local generated artifacts | `.gitignore`, `data/`, `models/` | Prevents datasets and model checkpoints from being committed. |
+
+### Production Tools by Task
+
+| Task | Standard Tools | Purpose |
+| --- | --- | --- |
+| Event collection | `Kafka`, `Kinesis`, `Pulsar` | Collects clicks, views, add-to-cart events, purchases, search queries, and impressions in near real time. |
+| Data lake storage | `S3`, `GCS`, `ADLS` | Stores raw logs, catalog snapshots, training datasets, model artifacts, and replayable historical data. |
+| Data warehouse | `Snowflake`, `BigQuery`, `Redshift` | Supports analytics, BI dashboards, metric computation, and SQL-based feature exploration. |
+| Batch processing | `Spark`, `Databricks` | Builds large-scale training datasets, aggregates user history, computes item popularity, and creates offline features. |
+| Stream processing | `Flink`, `Spark Structured Streaming`, `Kafka Streams` | Computes real-time session features such as recent clicks, active cart, and current category intent. |
+| Workflow orchestration | `Airflow`, `Dagster`, `Prefect` | Schedules dataset creation, feature generation, model training, validation, and deployment jobs. |
+| Feature store | `Feast`, `Tecton`, `Vertex AI Feature Store` | Reuses the same feature definitions for training and serving to avoid training-serving skew. |
+| Offline feature storage | `S3`, `GCS`, `ADLS`, `Snowflake`, `BigQuery`, `Redshift` | Stores historical features used for model training and backfills. |
+| Online feature storage | `Redis`, `DynamoDB`, `Cassandra`, `Feast Online Store`, `Tecton Online Store` | Serves low-latency user/session/product features during recommendation requests. |
+| Retrieval model training | `PyTorch`, `TensorFlow`, `JAX` | Trains two-tower, DSSM, or other embedding-based candidate generation models. |
+| Ranking model training | `LightGBM`, `XGBoost`, `DeepFM`, `Wide & Deep`, `DCN`, `PyTorch`, `TensorFlow` | Scores retrieved candidates using richer user, item, context, and business features. |
+| Vector search | `FAISS`, `ScaNN`, `Milvus`, `Pinecone`, `Weaviate`, `OpenSearch k-NN` | Retrieves nearest product embeddings for a user or session embedding. |
+| Experiment tracking | `MLflow`, `Weights & Biases` | Tracks model versions, parameters, metrics, artifacts, and training runs. |
+| Model registry | `MLflow Model Registry`, `SageMaker Model Registry` | Stores approved model versions and supports promotion from staging to production. |
+| Model serving | `Triton`, `TorchServe`, `TensorFlow Serving`, `KServe`, `SageMaker Endpoint` | Serves retrieval and ranking models behind scalable APIs. |
+| Recommendation API | `FastAPI`, `gRPC`, `Java/Spring`, `Go` | Exposes recommendation endpoints to web, mobile, search, cart, and email systems. |
+| API hosting | `Kubernetes`, `EKS`, `GKE`, `AKS`, `ECS` | Runs serving services with autoscaling, rolling deploys, and high availability. |
+| Cache | `Redis`, `Memcached` | Caches popular recommendations, user embeddings, product embeddings, and fallback lists. |
+| Data validation | `Great Expectations`, `TensorFlow Data Validation` | Checks schema, nulls, ranges, data drift, and feature quality before training or serving. |
+| Model monitoring | `Prometheus`, `Grafana`, `Datadog`, `CloudWatch` | Tracks latency, QPS, error rate, model drift, feature freshness, and business metrics. |
+| A/B testing | `Statsig`, `Optimizely`, internal experimentation platform | Measures online impact of recommendation changes against control traffic. |
+
+### Where These Fit in the Architecture
+
+```text
+Kafka / Kinesis
+      ↓
+S3 / GCS / ADLS Data Lake
+      ↓
+Spark / Databricks / Flink
+      ↓
+Feast / Tecton / Vertex AI Feature Store
+      ↓
+PyTorch Two-Tower Retrieval + LightGBM Ranking
+      ↓
+MLflow / W&B Tracking + MLflow or SageMaker Model Registry
+      ↓
+FAISS / Milvus / Pinecone Vector Retrieval
+      ↓
+FastAPI / gRPC Serving on Kubernetes
+      ↓
+Redis Cache + Re-Ranking Rules
+      ↓
+Customer Recommendations
+```
+
+### Pretrained Checkpoint Note
+
+A generic downloaded two-tower checkpoint usually cannot be used directly with this local dataset. Two-tower models contain embedding tables tied to the exact `user_id` and `product_id` mapping used during training. If a checkpoint was trained on different users and products, its embedding rows do not match our local `events.csv`.
+
+For learning the ID-based two-tower architecture without training, use:
+
+```bash
+python -m src.amazon_two_tower_recommendation --demo-no-train --top-k 10
+```
+
+For a more useful no-training production-style setup in this constrained environment, use lightweight text embeddings plus FAISS:
+
+```text
+Default encoder: scikit-learn TF-IDF
+Use case: product text embeddings and user/session profile embeddings
+Training required locally: no
+Retrieval engine: FAISS
+Serving layer: FastAPI
+```
+
+The optional heavy encoder is:
+
+```text
+Checkpoint: sentence-transformers/all-MiniLM-L6-v2
+Install file: requirements-production-recommendation-heavy.txt
+Use only when the machine has enough disk for PyTorch/SentenceTransformers.
+```
+
+This is implemented in:
+
+```text
+src/amazon_pretrained_production_retrieval.py
+```
+
+Install production dependencies:
+
+```bash
+python -m pip install -r requirements-production-recommendation.txt
+```
+
+Download the Amazon sample data:
+
+```bash
+python -m src.amazon_recommendation_mvp --download --limit 5000
+```
+
+Build the production-style retrieval artifacts without training:
+
+```bash
+python -m src.amazon_pretrained_production_retrieval --build-index --log-mlflow
+```
+
+What this command does:
+
+- Validates the local `events.csv` and `products.csv` schema.
+- Builds product text features.
+- Encodes products into lightweight TF-IDF vectors by default.
+- Builds a FAISS product index.
+- Saves artifacts under `models/amazon_pretrained_retrieval/`.
+- Optionally logs build metadata to `MLflow`.
+
+If you have enough disk and want the heavier SentenceTransformers path:
+
+```bash
+python -m pip install -r requirements-production-recommendation-heavy.txt
+python -m src.amazon_pretrained_production_retrieval \
+  --build-index \
+  --encoder sentence-transformers/all-MiniLM-L6-v2 \
+  --log-mlflow
+```
+
+Run one local recommendation by user ID:
+
+```bash
+python -m src.amazon_pretrained_production_retrieval --recommend --user-id <user_id> --top-k 10
+```
+
+Run one local recommendation by shopping intent:
+
+```bash
+python -m src.amazon_pretrained_production_retrieval --recommend --query-text "hair care products for dry hair" --top-k 10
+```
+
+Start the API:
+
+```bash
+uvicorn src.amazon_pretrained_production_retrieval:create_app --factory --reload
+```
+
+Call the API:
+
+```bash
+curl -X POST http://127.0.0.1:8000/recommend \
+  -H "Content-Type: application/json" \
+  -d '{"query_text": "skin care moisturizer", "top_k": 10}'
+```
+
+For meaningful recommendations on this dataset, train a small local checkpoint:
+
+```bash
+python -m src.amazon_two_tower_recommendation --train --epochs 5 --top-k 10
+```
+
 ## 5. Data Sources
+
+## 4.2 Implemented Production-Style Stack in This Repo
+
+The local implementation now wires the production concepts into concrete files:
+
+| Production Task | Technology | Function in This System | Repo Location |
+| --- | --- | --- | --- |
+| Data lake | Local CSV now, maps to `S3` / `GCS` / `ADLS` | Stores raw events, product catalog data, and replayable source files for feature generation and index builds. | `data/amazon_recommendation/`, `configs/production_recommendation_stack.yaml` |
+| Warehouse | Local files now, maps to `Snowflake` / `BigQuery` / `Redshift` | Represents the analytics layer where teams would query events, products, user behavior, and business metrics. | `configs/production_recommendation_stack.yaml` |
+| Processing | Python local now, maps to `Spark` / `Databricks` / `Flink` | Transforms raw events into product/user features such as interaction counts, average ratings, and recent user history. | `src/amazon_feature_store.py`, `configs/production_recommendation_stack.yaml` |
+| Orchestration | `Airflow`, `Dagster`, `Prefect` templates | Schedules the pipeline steps: data download, feature materialization, FAISS index build, and MLflow logging. | `orchestration/` |
+| Feature store | Local feature store artifacts plus Feast definitions | Stores reusable product/user features so retrieval and serving use the same feature values. | `src/amazon_feature_store.py`, `feature_store/recommendation_feature_repo/` |
+| Retrieval | `FAISS` | Stores product vectors and retrieves nearest products for a user profile or query embedding. | `src/amazon_pretrained_production_retrieval.py`, `models/amazon_pretrained_retrieval/products.faiss` |
+| Serving | `FastAPI`, `Uvicorn` | Exposes recommendation APIs through `/health` and `/recommend` endpoints. | `src/amazon_pretrained_production_retrieval.py` |
+| Experiment tracking | `MLflow` | Logs retrieval index build metadata such as encoder type, product count, and embedding dimension. | `log_build_to_mlflow()` in `src/amazon_pretrained_production_retrieval.py` |
+| Model registry | `MLflow Model Registry` / `SageMaker Model Registry` mapping | Defines where approved retrieval/ranking model versions would be promoted and loaded from in production. | `configs/production_recommendation_stack.yaml` |
+| Data validation | Built-in checks, `Great Expectations` suite, `TFDV` schema template | Validates required columns, non-empty data, event schema, and expected value constraints before building features or indexes. | `validation/` |
+
+Run the implemented local production path in the `rag` conda environment:
+
+```bash
+conda run -n rag python -m src.amazon_recommendation_mvp --download --limit 5000
+conda run -n rag python -m src.amazon_feature_store --materialize
+conda run -n rag python -m src.amazon_pretrained_production_retrieval --build-index --log-mlflow
+conda run -n rag python -m src.amazon_pretrained_production_retrieval --recommend --user-id <user_id> --top-k 10
+```
+
+Start the API:
+
+```bash
+conda run -n rag uvicorn src.amazon_pretrained_production_retrieval:create_app --factory --reload
+```
+
+Important note: cloud systems such as `S3`, `GCS`, `ADLS`, `Snowflake`, `BigQuery`, `Redshift`, `Tecton`, `Vertex AI Feature Store`, and `SageMaker Model Registry` require external accounts and credentials. This repo includes local runnable equivalents plus config/templates showing where those services plug in.
 
 ### User Behavior Data
 
@@ -591,3 +807,478 @@ SQLite or DuckDB
 
 This is enough to build a working local recommendation service without Kafka, Spark, Kubernetes, or a full feature store.
 
+# Two-Tower MVP With Suggested Technologies
+
+The file `src/amazon_two_tower_recommendation.py` implements a separate two-tower retrieval model using the exact standard tools suggested for this stage:
+
+- `PyTorch` for the user tower and product tower neural networks.
+- `FAISS` for approximate nearest-neighbor style product retrieval.
+- `FastAPI` for a simple recommendation API.
+- `Uvicorn` for running the API locally.
+
+Install dependencies:
+
+```bash
+python -m pip install -r requirements-recommendation.txt
+```
+
+Make sure the Amazon sample data exists:
+
+```bash
+python -m src.amazon_recommendation_mvp --download --limit 5000
+```
+
+Run the architecture without training:
+
+```bash
+python -m src.amazon_two_tower_recommendation --demo-no-train --top-k 10
+```
+
+This creates a deterministic untrained PyTorch two-tower model, saves a checkpoint under `models/amazon_two_tower/`, builds a FAISS product index, and prints recommendations. The recommendations are not meaningful yet because the weights are random, but the command demonstrates the architecture and technology flow.
+
+Generic downloaded two-tower weights are usually not useful for this project because user and product embedding tables depend on the exact dataset and ID mappings. A public checkpoint trained on different user IDs and product IDs would not align with our local `events.csv` and `products.csv`.
+
+After the no-training demo, start the local API:
+
+```bash
+uvicorn src.amazon_two_tower_recommendation:create_app --factory --reload
+```
+
+Train the two-tower model and print recommendations:
+
+```bash
+python -m src.amazon_two_tower_recommendation --train --epochs 5 --top-k 10
+```
+
+Train for a specific user ID from the downloaded data:
+
+```bash
+python -m src.amazon_two_tower_recommendation --train --user-id <user_id> --epochs 5 --top-k 10
+```
+
+After training, start the same local API:
+
+```bash
+uvicorn src.amazon_two_tower_recommendation:create_app --factory --reload
+```
+
+Call the API:
+
+```bash
+curl -X POST http://127.0.0.1:8000/recommend \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "<user_id>", "top_k": 10}'
+```
+
+This implementation is a retrieval model, not a final production ranker. In a production Amazon-style stack, the two-tower model would generate candidates, then a ranking model such as `LightGBM`, `XGBoost`, `DeepFM`, or `Wide & Deep` would score those candidates with richer features.
+
+# 🧠 How to Normalize a Co-occurrence Matrix and Compute Similarity
+
+Let's use a small example.
+
+---
+
+# Step 1: Co-occurrence Matrix
+
+Suppose we have 4 words:
+
+```text
+cat
+dog
+car
+truck
+```
+
+Co-occurrence matrix:
+
+| Word | pet | animal | vehicle | road |
+|--------|--------|--------|--------|--------|
+| cat | 10 | 8 | 0 | 0 |
+| dog | 9 | 10 | 0 | 0 |
+| car | 0 | 0 | 8 | 10 |
+| truck | 0 | 0 | 10 | 9 |
+
+---
+
+# Word Vectors
+
+```text
+cat   = [10, 8, 0, 0]
+dog   = [9, 10, 0, 0]
+car   = [0, 0, 8, 10]
+truck = [0, 0, 10, 9]
+```
+
+---
+
+# Why Normalize?
+
+Without normalization:
+
+```text
+cat = [100, 80, 0, 0]
+dog = [10, 8, 0, 0]
+```
+
+represent exactly the same semantic relationship.
+
+But raw counts differ greatly.
+
+We care about:
+
+```text
+Direction
+```
+
+not:
+
+```text
+Magnitude
+```
+
+---
+
+# Step 2: L2 Normalization
+
+## Formula
+
+```text
+                v
+Normalized = ───────
+              ||v||
+```
+
+where
+
+```text
+||v|| = √(x₁² + x₂² + ... + xₙ²)
+```
+
+---
+
+## Normalize "cat"
+
+Vector:
+
+```text
+cat = [10, 8, 0, 0]
+```
+
+Norm:
+
+```text
+√(10² + 8²)
+
+= √(100 + 64)
+
+= √164
+
+≈ 12.81
+```
+
+Normalized:
+
+```text
+cat
+
+[
+10/12.81,
+8/12.81,
+0,
+0
+]
+
+≈
+
+[0.780, 0.625, 0, 0]
+```
+
+---
+
+## Normalize "dog"
+
+Vector:
+
+```text
+dog = [9, 10, 0, 0]
+```
+
+Norm:
+
+```text
+√(9² + 10²)
+
+= √181
+
+≈ 13.45
+```
+
+Normalized:
+
+```text
+dog
+
+[
+9/13.45,
+10/13.45,
+0,
+0
+]
+
+≈
+
+[0.669, 0.743, 0, 0]
+```
+
+---
+
+# Step 3: Compute Cosine Similarity
+
+## Formula
+
+```text
+                    A · B
+Cosine Similarity = ─────────
+                   ||A|| ||B||
+```
+
+where:
+
+```text
+A · B
+
+=
+
+A₁B₁ + A₂B₂ + ... + AₙBₙ
+```
+
+---
+
+## Since Vectors Are Normalized
+
+After L2 normalization:
+
+```text
+||A|| = 1
+||B|| = 1
+```
+
+Therefore:
+
+```text
+Cosine Similarity
+
+=
+
+A · B
+```
+
+which becomes a simple dot product.
+
+---
+
+## Similarity(cat, dog)
+
+```text
+cat = [0.780, 0.625, 0, 0]
+
+dog = [0.669, 0.743, 0, 0]
+```
+
+Dot product:
+
+```text
+(0.780 × 0.669)
+
++
+
+(0.625 × 0.743)
+
+=
+
+0.522
+
++
+
+0.464
+
+=
+
+0.986
+```
+
+Result:
+
+```text
+Similarity(cat,dog) ≈ 0.986
+```
+
+Very similar.
+
+---
+
+## Similarity(cat, car)
+
+```text
+cat = [0.780,0.625,0,0]
+
+car = [0,0,0.625,0.780]
+```
+
+Dot product:
+
+```text
+0
+```
+
+Result:
+
+```text
+Similarity(cat,car)=0
+```
+
+Not related.
+
+---
+
+# Cosine Similarity Range
+
+```text
++1  → Identical direction
+ 0  → Unrelated
+-1  → Opposite direction
+```
+
+For word embeddings:
+
+```text
+0.8 - 1.0 → Very similar
+0.5 - 0.8 → Related
+0.0 - 0.5 → Weakly related
+```
+
+---
+
+# Better Normalization: PPMI
+
+Raw counts are often biased by frequent words.
+
+Example:
+
+```text
+the
+is
+of
+```
+
+appear everywhere.
+
+Instead of raw counts, NLP often uses:
+
+```text
+PPMI
+(Positive Pointwise Mutual Information)
+```
+
+## Formula
+
+```text
+PPMI(word, context)
+
+=
+
+max(
+
+log(
+
+P(word, context)
+────────────────────────
+P(word) × P(context)
+
+),
+
+0
+
+)
+```
+
+---
+
+## Why PPMI Helps
+
+Suppose:
+
+```text
+the
+```
+
+appears near every word.
+
+Raw counts:
+
+```text
+the → 100000
+cat → 50
+dog → 60
+```
+
+The word:
+
+```text
+the
+```
+
+dominates the co-occurrence matrix.
+
+PPMI reduces the impact of such extremely common words and highlights informative associations.
+
+---
+
+# Classical NLP Pipeline
+
+```text
+Text Corpus
+      ↓
+Co-occurrence Matrix
+      ↓
+PPMI
+      ↓
+SVD
+      ↓
+Dense Word Vectors
+      ↓
+Cosine Similarity
+```
+
+This was the foundation of many embedding techniques before Word2Vec.
+
+---
+
+# Relationship to Word2Vec
+
+Co-occurrence Matrix:
+
+```text
+Stores counts explicitly
+```
+
+Example:
+
+```text
+cat → pet = 50
+cat → animal = 40
+```
+
+Word2Vec:
+
+```text
+Learns these relationships implicitly
+```
+
+and directly produces dense vectors.
+
+---
+
+# Interview Answer
+
+A co-occurrence matrix represents each word as a vector of context-word counts. To compare words, each vector is first normalized, typically using L2 normalization, which removes the effect of magnitude differences. Cosine similarity is then computed between the normalized vectors to measure how similar their context distributions are. Words appearing in similar contexts produce similar vectors and therefore have high cosine similarity scores. In classical NLP systems, PPMI normalization and SVD were often applied before computing cosine similarity to obtain more meaningful semantic representations.
