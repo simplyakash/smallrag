@@ -463,6 +463,14 @@ Input distribution changed.
 ```text
 Data Drift
 ```
+```
+Track using PSI (Population Stability Index),Kolmogorov-Smirnov Test,Jensen-Shannon Distance, Feature Statistics like Mean
+Median
+Variance
+Min
+Max
+Percentiles
+```
 
 ---
 
@@ -488,6 +496,25 @@ Result:
 ```text
 Model Accuracy Drops
 ```
+```
+The relationship between inputs and outputs changes.
+```
+| Property          | Data Drift           | Concept Drift             |
+| ----------------- | -------------------- | ------------------------- |
+| What changes?     | Input distribution   | Input-output relationship |
+| Mathematical Form | P(X) changes         | P(Y|X) changes            |
+| Labels needed?    | No                   | Usually yes               |
+| Easier to detect? | Yes                  | Harder                    |
+| Detection         | PSI, KS, JS Distance | Accuracy,ErrorRate, DDM, ADWIN      |
+| Example           | Users become older   | User behavior changes     |
+
+| Tool                 | Purpose                            |
+| -------------------- | ---------------------------------- |
+| Evidently AI         | Drift detection dashboards         |
+| WhyLabs              | Data & concept drift monitoring    |
+| Arize AI             | Model monitoring                   |
+| MLflow               | Metrics tracking                   |
+| Prometheus + Grafana | Production alerting and dashboards |
 
 ---
 
@@ -496,9 +523,12 @@ Model Accuracy Drops
 Track:
 
 ```text
-Hallucination Rate
-Answer Relevance
-Groundedness
+Hallucination Rate:
+Hallucination Rate=
+Total Answers/Unsuppported Answers ) 
+Answer Relevance:LLM Evaluation
+Mainly LLM as a judge to rate relevance and brevity of responses
+Groundedness:
 Citation Accuracy
 ```
 
