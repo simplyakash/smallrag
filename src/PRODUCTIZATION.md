@@ -2571,3 +2571,869 @@ Queries Per Second (QPS) measures the number of requests handled by a system eve
 ```text
 Error Rate is the percentage of requests that fail due to system, infrastructure, or model-related issues. It is a critical reliability metric and is usually monitored alongside latency, throughput, CPU/GPU utilization, and availability.
 ```
+
+
+# Agentic AI & LLM Application Design
+
+This is currently one of the hottest interview topics.
+
+Traditional LLM Applications:
+
+```text
+User
+  ↓
+Prompt
+  ↓
+LLM
+  ↓
+Response
+```
+
+Agentic AI:
+
+```text
+User
+  ↓
+Agent
+  ↓
+Reason
+  ↓
+Plan
+  ↓
+Use Tools
+  ↓
+Take Actions
+  ↓
+Verify
+  ↓
+Respond
+```
+
+The key difference:
+
+```text
+Traditional LLM
+    ↓
+Generate Text
+
+Agent
+    ↓
+Generate + Act
+```
+
+---
+
+# What is an AI Agent?
+
+An AI Agent is an LLM-powered system that can:
+
+```text
+Reason
+Plan
+Use Tools
+Maintain State
+Execute Actions
+```
+
+Example:
+
+User asks:
+
+```text
+Book a flight to Bangalore next Friday
+```
+
+Traditional LLM:
+
+```text
+Explains how to book a flight
+```
+
+Agent:
+
+```text
+Search Flights
+    ↓
+Compare Prices
+    ↓
+Book Ticket
+    ↓
+Send Confirmation
+```
+
+---
+
+# Core Components of an Agent
+
+```text
+User Query
+      ↓
+Planner
+      ↓
+Tool Selection
+      ↓
+Tool Execution
+      ↓
+Memory
+      ↓
+Response Generation
+```
+
+---
+
+# Agent Architecture
+
+```text
+                  User
+                    │
+                    ▼
+              LLM Agent
+                    │
+       ┌────────────┼────────────┐
+       │            │            │
+       ▼            ▼            ▼
+   Search API   Database     Calculator
+       │            │            │
+       └────────────┼────────────┘
+                    │
+                    ▼
+             Final Response
+```
+
+---
+
+# Tool Calling
+
+Very common interview topic.
+
+---
+
+# What is Tool Calling?
+
+Tool Calling allows the LLM to invoke external functions.
+
+Example:
+
+User:
+
+```text
+What's the weather in Bangalore?
+```
+
+LLM:
+
+```text
+Need Weather Data
+```
+
+Calls:
+
+```python
+get_weather("Bangalore")
+```
+
+Tool returns:
+
+```text
+32°C
+```
+
+LLM generates:
+
+```text
+The current temperature is 32°C.
+```
+
+---
+
+# Workflow
+
+```text
+User Query
+      ↓
+LLM
+      ↓
+Select Tool
+      ↓
+Execute Tool
+      ↓
+Tool Result
+      ↓
+LLM
+      ↓
+Final Answer
+```
+
+---
+
+# Why Tool Calling?
+
+LLMs cannot:
+
+```text
+Access Real-Time Data
+Query Databases
+Send Emails
+Perform Transactions
+```
+
+Tools bridge that gap.
+
+---
+
+# Common Tools
+
+```text
+Web Search
+SQL Database
+Vector Database
+Calculator
+CRM
+Email
+Calendar
+```
+
+---
+
+# Example
+
+User:
+
+```text
+How many orders were placed yesterday?
+```
+
+Agent:
+
+```text
+Query SQL Database
+      ↓
+Get Result
+      ↓
+Generate Response
+```
+
+---
+
+# Memory
+
+Interviewers love memory questions.
+
+---
+
+# Why Memory?
+
+Without memory:
+
+```text
+Every conversation starts from scratch
+```
+
+With memory:
+
+```text
+Agent remembers previous interactions
+```
+
+---
+
+# Short-Term Memory
+
+Stores:
+
+```text
+Current Conversation
+```
+
+Example:
+
+```text
+User:
+My name is Akash.
+
+Later:
+What is my name?
+```
+
+Agent can answer.
+
+---
+
+# Long-Term Memory
+
+Stores:
+
+```text
+Past Conversations
+User Preferences
+Historical Actions
+```
+
+Typically implemented using:
+
+```text
+Vector Database
+```
+
+Examples:
+
+```text
+Pinecone
+Qdrant
+Milvus
+Weaviate
+```
+
+---
+
+# Memory Architecture
+
+```text
+Conversation
+      ↓
+Embedding
+      ↓
+Vector Database
+      ↓
+Semantic Retrieval
+      ↓
+Relevant Memories
+```
+
+---
+
+# Example
+
+User:
+
+```text
+Recommend a laptop
+```
+
+Memory contains:
+
+```text
+User prefers MacBooks
+Budget = ₹1.5L
+```
+
+Agent uses memory.
+
+---
+
+# Context Management
+
+Extremely common interview question.
+
+---
+
+# Problem
+
+LLMs have limited context windows.
+
+Example:
+
+```text
+32K Tokens
+128K Tokens
+200K Tokens
+```
+
+Large enterprises may have:
+
+```text
+Millions of Documents
+```
+
+Impossible to fit into context.
+
+---
+
+# Solution 1: Retrieval
+
+```text
+Question
+    ↓
+Retriever
+    ↓
+Relevant Chunks
+    ↓
+LLM
+```
+
+This is RAG.
+
+---
+
+# Solution 2: Summarization
+
+```text
+Long History
+      ↓
+Summary
+      ↓
+Store
+```
+
+Instead of storing:
+
+```text
+1000 messages
+```
+
+store:
+
+```text
+Conversation Summary
+```
+
+---
+
+# Solution 3: Memory Compression
+
+```text
+Old Messages
+      ↓
+Compressed Memory
+      ↓
+Future Context
+```
+
+---
+
+# Context Window Management
+
+Typical Architecture:
+
+```text
+System Prompt
+      +
+Retrieved Documents
+      +
+Relevant Memory
+      +
+Current Conversation
+      ↓
+LLM
+```
+
+Only the most relevant information is sent.
+
+---
+
+# Single-Agent vs Multi-Agent Systems
+
+---
+
+# Single-Agent
+
+```text
+User
+  ↓
+Agent
+  ↓
+Tools
+```
+
+Pros:
+
+```text
+Simple
+Cheap
+```
+
+Cons:
+
+```text
+Limited Specialization
+```
+
+---
+
+# Multi-Agent Systems
+
+```text
+User
+  ↓
+Planner Agent
+  ↓
+Research Agent
+  ↓
+Execution Agent
+  ↓
+Critic Agent
+```
+
+Each agent has a role.
+
+---
+
+# Example
+
+User:
+
+```text
+Create market research report
+```
+
+Planner:
+
+```text
+Break task into subtasks
+```
+
+Research Agent:
+
+```text
+Collect data
+```
+
+Writer Agent:
+
+```text
+Create report
+```
+
+Reviewer Agent:
+
+```text
+Verify quality
+```
+
+---
+
+# Agent Coordination
+
+How agents communicate.
+
+---
+
+# Centralized Coordination
+
+```text
+                 Planner
+                    │
+       ┌────────────┼────────────┐
+       ▼            ▼            ▼
+  Research      Analysis      Writer
+```
+
+Planner controls everything.
+
+---
+
+# Decentralized Coordination
+
+```text
+Agent A ↔ Agent B ↔ Agent C
+```
+
+Agents communicate directly.
+
+More flexible.
+
+More complex.
+
+---
+
+# Workflow Design
+
+Interviewers ask:
+
+```text
+Design an Agent Workflow
+```
+
+Example:
+
+Customer Support Agent
+
+```text
+User Query
+      ↓
+Intent Detection
+      ↓
+Knowledge Retrieval
+      ↓
+Tool Calls
+      ↓
+Response Generation
+      ↓
+Validation
+      ↓
+User Response
+```
+
+---
+
+# Agent Loop
+
+Core agent reasoning pattern:
+
+```text
+Think
+  ↓
+Act
+  ↓
+Observe
+  ↓
+Think
+  ↓
+Act
+  ↓
+Respond
+```
+
+Known as:
+
+```text
+Reason → Act → Observe
+```
+
+or
+
+```text
+ReAct Pattern
+```
+
+---
+
+# Orchestration Frameworks
+
+Frameworks that manage agents, tools, workflows, and memory.
+
+---
+
+# LangChain
+
+Provides:
+
+```text
+Prompts
+Chains
+Agents
+Tools
+Memory
+```
+
+Good for:
+
+```text
+Rapid Prototyping
+```
+
+---
+
+# LangGraph
+
+Very important for interviews.
+
+Architecture:
+
+```text
+Node
+  ↓
+Node
+  ↓
+Node
+```
+
+Represented as:
+
+```text
+State Machine
+```
+
+Benefits:
+
+```text
+Complex Workflows
+Human-in-the-loop
+Multi-Agent Systems
+```
+
+---
+
+# CrewAI
+
+Designed for:
+
+```text
+Multi-Agent Collaboration
+```
+
+Example:
+
+```text
+Researcher
+Writer
+Reviewer
+```
+
+working together.
+
+---
+
+# AutoGen
+
+Microsoft framework.
+
+Supports:
+
+```text
+Agent-to-Agent Communication
+```
+
+---
+
+# Agent Failure Handling
+
+Interviewers love production questions.
+
+---
+
+# Tool Failure
+
+```text
+Weather API Down
+```
+
+Fallback:
+
+```text
+Retry
+Cache
+Alternative Tool
+```
+
+---
+
+# Hallucination
+
+Mitigation:
+
+```text
+RAG
+Verification Step
+Critic Agent
+Tool-Based Grounding
+```
+
+---
+
+# Infinite Loops
+
+Bad:
+
+```text
+Agent
+  ↓
+Tool
+  ↓
+Agent
+  ↓
+Tool
+```
+
+forever.
+
+Solution:
+
+```text
+Max Iterations
+Timeouts
+```
+
+---
+
+# Agent Evaluation
+
+Monitor:
+
+```text
+Task Success Rate
+Tool Success Rate
+Latency
+Cost
+User Satisfaction
+```
+
+---
+
+# Architectural Trade-Offs
+
+## Single Agent vs Multi-Agent
+
+### Single Agent
+
+Pros:
+
+```text
+Simple
+Cheap
+```
+
+Cons:
+
+```text
+Limited Capability
+```
+
+---
+
+### Multi-Agent
+
+Pros:
+
+```text
+Better Specialization
+```
+
+Cons:
+
+```text
+Higher Cost
+Higher Latency
+```
+
+---
+
+## More Tools vs Fewer Tools
+
+### More Tools
+
+Pros:
+
+```text
+More Capabilities
+```
+
+Cons:
+
+```text
+Tool Selection Complexity
+```
+
+---
+
+## Large Memory vs Small Memory
+
+### Large Memory
+
+Pros:
+
+```text
+More Personalization
+```
+
+Cons:
+
+```text
+Higher Token Cost
+```
+
+---
+
+# Senior ML Engineer Interview Answer
+
+Agentic AI systems extend LLMs with planning, reasoning, memory, tool usage, and workflow execution capabilities. A typical agent architecture includes a planner, memory system, tool-calling layer, execution engine, and response generator. Context is managed using retrieval, summarization, and memory compression techniques. For complex tasks, multi-agent architectures can be used where specialized agents coordinate through orchestration frameworks such as LangGraph, CrewAI, or AutoGen. In production, it is important to handle tool failures, prevent agent loops, monitor latency and success rates, and balance quality, cost, and scalability.
