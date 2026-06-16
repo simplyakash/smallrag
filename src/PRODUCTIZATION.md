@@ -463,6 +463,7 @@ Input distribution changed.
 ```text
 Data Drift
 ```
+
 ```
 Track using PSI (Population Stability Index),Kolmogorov-Smirnov Test,Jensen-Shannon Distance, Feature Statistics like Mean
 Median
@@ -496,17 +497,22 @@ Result:
 ```text
 Model Accuracy Drops
 ```
+
 ```
 The relationship between inputs and outputs changes.
 ```
-| Property          | Data Drift           | Concept Drift             |
-| ----------------- | -------------------- | ------------------------- |
-| What changes?     | Input distribution   | Input-output relationship |
-| Mathematical Form | P(X) changes         | P(Y|X) changes            |
-| Labels needed?    | No                   | Usually yes               |
-| Easier to detect? | Yes                  | Harder                    |
-| Detection         | PSI, KS, JS Distance | Accuracy,ErrorRate, DDM, ADWIN      |
-| Example           | Users become older   | User behavior changes     |
+
+
+| Property          | Data Drift           | Concept Drift                  |
+| ----------------- | -------------------- | ------------------------------ |
+| What changes?     | Input distribution   | Input-output relationship      |
+| Mathematical Form | P(X) changes         | P(Y                            |
+| Labels needed?    | No                   | Usually yes                    |
+| Easier to detect? | Yes                  | Harder                         |
+| Detection         | PSI, KS, JS Distance | Accuracy,ErrorRate, DDM, ADWIN |
+| Example           | Users become older   | User behavior changes          |
+
+
 
 | Tool                 | Purpose                            |
 | -------------------- | ---------------------------------- |
@@ -515,6 +521,7 @@ The relationship between inputs and outputs changes.
 | Arize AI             | Model monitoring                   |
 | MLflow               | Metrics tracking                   |
 | Prometheus + Grafana | Production alerting and dashboards |
+
 
 ---
 
@@ -525,7 +532,7 @@ Track:
 ```text
 Hallucination Rate:
 Hallucination Rate=
-Total Answers/Unsuppported Answers ) 
+Unsuppported Answers/Total Answers 
 Answer Relevance:LLM Evaluation
 Mainly LLM as a judge to rate relevance and brevity of responses
 Groundedness:
@@ -763,8 +770,6 @@ Stale Information
 ```text
 AI Productization is the process of transforming a trained model into a scalable, reliable, monitored, secure, and maintainable production system that continuously delivers business value.
 ```
-
-
 
 # Model Deployment Concepts & Serving Strategies
 
@@ -1558,7 +1563,6 @@ Cheaper Inference
 # Senior ML Engineer Answer
 
 When deploying AI models to production, I first determine whether the use case requires batch, online, or streaming inference. I package the model using Docker, store versions in a model registry, and deploy through scalable serving infrastructure such as FastAPI, Triton, or vLLM. I use load balancing, batching, caching, and horizontal scaling to handle traffic growth. For safe rollouts, I use canary, blue-green, or shadow deployments. Finally, I continuously monitor infrastructure metrics, model performance, data drift, and business KPIs while maintaining a retraining pipeline.
-
 
 # AI/ML System Design, Scalability & Architectural Trade-offs
 
@@ -2571,7 +2575,6 @@ Queries Per Second (QPS) measures the number of requests handled by a system eve
 ```text
 Error Rate is the percentage of requests that fail due to system, infrastructure, or model-related issues. It is a critical reliability metric and is usually monitored alongside latency, throughput, CPU/GPU utilization, and availability.
 ```
-
 
 # Agentic AI & LLM Application Design
 

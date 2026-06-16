@@ -183,6 +183,36 @@ Run fallback triage:
 python src/agentic_ai_example.py "Need help with onboarding laptop access"
 ```
 
+## Run The LangGraph Variant
+
+Install the extra graph dependency when you want to run the LangGraph version:
+
+```bash
+pip install -r requirements-agentic-langgraph.txt
+```
+
+Then run the parallel implementation:
+
+```bash
+python src/agentic_ai_langgraph.py --planner rule "How many paid leave days do employees get?"
+python src/agentic_ai_langgraph.py --planner rule "How many days until the 2026-12-31 deadline?"
+python src/agentic_ai_langgraph.py --planner rule "Need help with onboarding laptop access"
+```
+
+The LangGraph file defines its own tools and planner contracts locally, then
+represents the executor loop as a graph:
+
+```text
+User Goal
+  -> planner node chooses AgentAction
+  -> route to END when tool_name is final_answer
+  -> otherwise run the tool node
+  -> append observation and loop back to the planner node
+```
+
+The LLM and local LLM planners use the same config and model flags as
+`src/agentic_ai_example.py`.
+
 ## Logging
 
 The script writes the full method-by-method flow to
@@ -265,4 +295,528 @@ python src/agentic_ai_example.py --planner local-llm "How many paid leave days d
 
 Deploy:
 uvicorn src.agentic_ai_service:app --host 0.0.0.0 --port 8000
+
+# 🧠 Advantages of LangGraph Over Normal Python Code for Agentic AI
+
+A common interview question is:
+
+> "Why use LangGraph? Can't we just write agents in Python?"
+
+The answer is:
+
+```text
+Yes, you can build agents using plain Python.
+
+However, as workflows become more complex,
+LangGraph provides structure, reliability,
+state management, observability, and control.
+```
+
+---
+
+# Normal Python Agent
+
+Example:
+
+```python
+def agent(query):
+    plan = planner(query)
+
+    if needs_search(plan):
+        result = search_tool(plan)
+
+    if needs_calculator(plan):
+        result = calculator_tool(plan)
+
+    answer = llm(result)
+
+    return answer
+```
+
+Works fine for:
+
+```text
+Simple Agent
+1-2 Tools
+Linear Workflow
+```
+
+---
+
+# Problem as Complexity Grows
+
+Suppose you need:
+
+```text
+Planner
+    ↓
+Retriever
+    ↓
+Evaluator
+    ↓
+Replan if failure
+    ↓
+Tool Calls
+    ↓
+Human Approval
+    ↓
+Final Response
+```
+
+Now code becomes:
+
+```python
+if ...
+    while ...
+        try ...
+            if ...
+                ...
+```
+
+Soon you have:
+
+```text
+Nested ifs
+Nested loops
+Retries
+Branching
+State passing
+Checkpointing
+```
+
+which becomes hard to maintain.
+
+---
+
+# LangGraph Approach
+
+Instead of writing workflow logic manually:
+
+```text
+Node A
+   ↓
+Node B
+   ↓
+Node C
+```
+
+You explicitly define a graph.
+
+```text
+Planner
+   ↓
+Retriever
+   ↓
+Evaluator
+  ↙     ↘
+Pass    Fail
+  ↓       ↓
+Answer  Replan
+```
+
+---
+
+# Advantage 1: Explicit Workflow Graph
+
+Normal Python:
+
+```python
+if ...
+while ...
+for ...
+```
+
+Need to mentally trace execution.
+
+---
+
+LangGraph:
+
+```text
+Planner
+   ↓
+Retriever
+   ↓
+Evaluator
+```
+
+Workflow is visually obvious.
+
+---
+
+# Advantage 2: State Management
+
+Agents maintain:
+
+```text
+Conversation History
+Retrieved Docs
+Tool Outputs
+Intermediate Reasoning
+Memory
+```
+
+In Python:
+
+```python
+state = {}
+state["history"] = ...
+state["docs"] = ...
+state["tools"] = ...
+```
+
+Becomes messy.
+
+---
+
+LangGraph:
+
+```python
+class AgentState(TypedDict):
+    messages: list
+    documents: list
+    answer: str
+```
+
+Shared state automatically flows through nodes.
+
+---
+
+# Advantage 3: Cycles and Replanning
+
+Agentic systems often require:
+
+```text
+Plan
+   ↓
+Execute
+   ↓
+Evaluate
+   ↓
+Replan
+```
+
+Normal Python:
+
+```python
+while not success:
+    plan()
+    execute()
+    evaluate()
+```
+
+Hard to debug.
+
+---
+
+LangGraph:
+
+```text
+Planner
+   ↓
+Executor
+   ↓
+Evaluator
+   ↓
+Planner
+```
+
+Cycles are first-class citizens.
+
+---
+
+# Advantage 4: Human-in-the-Loop
+
+Example:
+
+```text
+Generate SQL
+      ↓
+Human Approval
+      ↓
+Execute
+```
+
+Python:
+
+```python
+input()
+callbacks
+manual code
+```
+
+---
+
+LangGraph:
+
+```text
+Node
+   ↓
+Pause
+   ↓
+Human Review
+   ↓
+Resume
+```
+
+Built into the framework.
+
+---
+
+# Advantage 5: Checkpointing
+
+Suppose an agent runs for:
+
+```text
+10 minutes
+20 tool calls
+```
+
+and crashes at step 18.
+
+---
+
+Normal Python:
+
+```text
+Start over
+```
+
+---
+
+LangGraph:
+
+```text
+Resume from checkpoint
+```
+
+Only re-execute failed nodes.
+
+---
+
+# Advantage 6: Persistence
+
+State can survive:
+
+```text
+Server restart
+Pod restart
+Crash
+```
+
+because checkpoints are stored in:
+
+```text
+Redis
+Postgres
+SQLite
+S3
+```
+
+---
+
+# Advantage 7: Multi-Agent Systems
+
+Example:
+
+```text
+Research Agent
+      ↓
+Coding Agent
+      ↓
+Reviewer Agent
+```
+
+Python:
+
+```python
+research_agent()
+coding_agent()
+review_agent()
+```
+
+Quickly becomes difficult with:
+
+```text
+State Sharing
+Routing
+Retries
+Memory
+```
+
+---
+
+LangGraph:
+
+```text
+Agent A
+  ↓
+Agent B
+  ↓
+Agent C
+```
+
+Agents become graph nodes.
+
+---
+
+# Advantage 8: Conditional Routing
+
+Example:
+
+```text
+Question
+    ↓
+Need Search?
+   / \
+ Yes No
+ /     \
+Search  Answer
+```
+
+Python:
+
+```python
+if search_required:
+```
+
+works initially but becomes messy with many branches.
+
+---
+
+LangGraph:
+
+```python
+builder.add_conditional_edges(...)
+```
+
+Routing is explicit.
+
+---
+
+# Advantage 9: Streaming
+
+Agent execution can stream:
+
+```text
+Node Started
+Node Finished
+Tool Output
+Intermediate Result
+```
+
+Useful for:
+
+```text
+ChatGPT-like UIs
+Agent Monitoring
+Debugging
+```
+
+---
+
+# Advantage 10: Observability
+
+With LangGraph + :contentReference[oaicite:0]{index=0}:
+
+```text
+See every node
+See every tool call
+See every prompt
+See every token
+See state transitions
+```
+
+Normal Python:
+
+```text
+print()
+logging()
+manual tracing
+```
+
+---
+
+# Example Comparison
+
+## Plain Python
+
+```text
+User Query
+    ↓
+Planner
+    ↓
+Search
+    ↓
+Evaluate
+    ↓
+Retry?
+    ↓
+Answer
+```
+
+Implemented as:
+
+```python
+while True:
+    ...
+```
+
+---
+
+## LangGraph
+
+```text
+User Query
+    ↓
+Planner
+    ↓
+Search
+    ↓
+Evaluator
+   /   \
+Pass   Fail
+  ↓      ↓
+Answer  Planner
+```
+
+The workflow itself is the code.
+
+---
+
+# When Plain Python Is Enough
+
+Use plain Python if:
+
+```text
+✅ Simple chatbot
+✅ Single tool
+✅ Small prototype
+✅ Few workflow steps
+```
+
+LangGraph may be overkill.
+
+---
+
+# When LangGraph Helps
+
+Use LangGraph if:
+
+```text
+✅ Multi-step agents
+✅ Tool calling
+✅ Replanning loops
+✅ Human approval
+✅ Long-running workflows
+✅ Multi-agent systems
+✅ Checkpointing
+✅ Production observability
+```
+
+---
+
+# Interview Answer
+
+LangGraph provides a graph-based orchestration framework for agentic AI systems. While the same functionality can be implemented using normal Python control flow, LangGraph offers explicit workflow representation, shared state management, conditional routing, cycles for replanning, checkpointing, persistence, human-in-the-loop support, multi-agent orchestration, and observability. These features make complex agent workflows easier to build, debug, monitor, and maintain compared to manually managing the same logic with nested loops, conditionals, and state dictionaries in plain Python.
 
