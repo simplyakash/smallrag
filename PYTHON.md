@@ -802,3 +802,441 @@ Threading uses operating system threads and is suitable for moderate I/O-bound w
 ```
 
 For ML/AI Engineer interviews, these topics are among the highest-frequency Python questions.
+
+
+# 🧠 SOLID Principles in Python
+
+SOLID is a set of 5 Object-Oriented Design principles that help create:
+
+```text
+✅ Maintainable Code
+✅ Extensible Code
+✅ Testable Code
+✅ Loosely Coupled Systems
+```
+
+Introduced by:
+
+```text
+Robert C. Martin ("Uncle Bob")
+```
+
+---
+
+# S → Single Responsibility Principle (SRP)
+
+## Definition
+
+A class should have only one reason to change.
+
+In other words:
+
+```text
+One Class
+One Responsibility
+```
+
+### ❌ Bad Example
+
+```python
+class User:
+
+    def save_to_db(self):
+        pass
+
+    def send_email(self):
+        pass
+```
+
+### Why Bad?
+
+```text
+User Class is responsible for:
+1. User Data
+2. Database Operations
+3. Email Operations
+```
+
+Too many responsibilities.
+
+---
+
+### ✅ Good Example
+
+```python
+class User:
+    pass
+
+
+class UserRepository:
+
+    def save(self, user):
+        pass
+
+
+class EmailService:
+
+    def send(self, user):
+        pass
+```
+
+Responsibilities:
+
+```text
+User           → Data
+UserRepository → Database
+EmailService   → Email
+```
+
+---
+
+# O → Open Closed Principle (OCP)
+
+## Definition
+
+Software entities should be:
+
+```text
+Open for Extension
+Closed for Modification
+```
+
+Meaning:
+
+```text
+Add New Features
+Without Changing Existing Code
+```
+
+### ❌ Bad Example
+
+```python
+class PaymentProcessor:
+
+    def pay(self, method):
+
+        if method == "card":
+            pass
+
+        elif method == "upi":
+            pass
+```
+
+Adding:
+
+```text
+PayPal
+Apple Pay
+```
+
+requires modifying existing code.
+
+---
+
+### ✅ Good Example
+
+```python
+from abc import ABC, abstractmethod
+
+
+class PaymentMethod(ABC):
+
+    @abstractmethod
+    def pay(self):
+        pass
+
+
+class CardPayment(PaymentMethod):
+
+    def pay(self):
+        print("Card Payment")
+
+
+class UPIPayment(PaymentMethod):
+
+    def pay(self):
+        print("UPI Payment")
+```
+
+New payment method:
+
+```python
+class PaypalPayment(PaymentMethod):
+
+    def pay(self):
+        print("Paypal Payment")
+```
+
+No existing code changes needed.
+
+---
+
+# L → Liskov Substitution Principle (LSP)
+
+## Definition
+
+Child classes should be replaceable for parent classes.
+
+### ❌ Bad Example
+
+```python
+class Bird:
+
+    def fly(self):
+        pass
+
+
+class Penguin(Bird):
+
+    def fly(self):
+        raise Exception("Penguins cannot fly")
+```
+
+Problem:
+
+```python
+bird = Penguin()
+bird.fly()
+```
+
+Breaks expectations.
+
+---
+
+### ✅ Good Example
+
+```python
+class Bird:
+    pass
+
+
+class FlyingBird(Bird):
+
+    def fly(self):
+        pass
+
+
+class Sparrow(FlyingBird):
+    pass
+
+
+class Penguin(Bird):
+    pass
+```
+
+Now substitution is safe.
+
+---
+
+# I → Interface Segregation Principle (ISP)
+
+## Definition
+
+Do not force classes to implement methods they do not need.
+
+### ❌ Bad Example
+
+```python
+class Worker:
+
+    def work(self):
+        pass
+
+    def eat(self):
+        pass
+```
+
+Robot:
+
+```python
+class Robot(Worker):
+
+    def eat(self):
+        raise Exception()
+```
+
+Robot does not eat.
+
+---
+
+### ✅ Good Example
+
+```python
+class Workable:
+
+    def work(self):
+        pass
+
+
+class Eatable:
+
+    def eat(self):
+        pass
+```
+
+Human:
+
+```python
+class Human(Workable, Eatable):
+    pass
+```
+
+Robot:
+
+```python
+class Robot(Workable):
+    pass
+```
+
+---
+
+# D → Dependency Inversion Principle (DIP)
+
+## Definition
+
+Depend on abstractions.
+
+Do not depend on concrete implementations.
+
+---
+
+### ❌ Bad Example
+
+```python
+class MySQLDatabase:
+
+    def save(self):
+        pass
+
+
+class UserService:
+
+    def __init__(self):
+        self.db = MySQLDatabase()
+```
+
+Problem:
+
+```text
+UserService tightly coupled to MySQL
+```
+
+---
+
+### ✅ Good Example
+
+```python
+from abc import ABC, abstractmethod
+
+
+class Database(ABC):
+
+    @abstractmethod
+    def save(self):
+        pass
+```
+
+Implementation:
+
+```python
+class MySQLDatabase(Database):
+
+    def save(self):
+        print("Saving to MySQL")
+```
+
+Service:
+
+```python
+class UserService:
+
+    def __init__(self, db):
+        self.db = db
+```
+
+Usage:
+
+```python
+db = MySQLDatabase()
+
+service = UserService(db)
+```
+
+Can later swap:
+
+```text
+PostgreSQL
+MongoDB
+Redis
+```
+
+without changing UserService.
+
+---
+
+# 🧠 ML / AI Example
+
+Bad:
+
+```python
+class RAGPipeline:
+
+    def __init__(self):
+        self.vector_db = ChromaDB()
+```
+
+Problem:
+
+```text
+Tightly coupled to ChromaDB
+```
+
+---
+
+Good:
+
+```python
+class VectorStore(ABC):
+
+    @abstractmethod
+    def search(self):
+        pass
+```
+
+Implementations:
+
+```python
+ChromaDBStore
+PineconeStore
+FAISSStore
+WeaviateStore
+```
+
+Pipeline:
+
+```python
+class RAGPipeline:
+
+    def __init__(self, vector_store):
+        self.vector_store = vector_store
+```
+
+Now the vector database can be swapped easily.
+
+---
+
+# 📊 Summary Table
+
+| Principle | Meaning |
+|------------|----------|
+| S | Single Responsibility |
+| O | Open for Extension, Closed for Modification |
+| L | Child Class Should Replace Parent Safely |
+| I | Keep Interfaces Small |
+| D | Depend on Abstractions |
+
+---
+
+# 🎤 Interview Answer
+
+SOLID is a set of object-oriented design principles that improves maintainability, extensibility, testability, and loose coupling. The five principles are Single Responsibility, Open-Closed, Liskov Substitution, Interface Segregation, and Dependency Inversion. These principles are widely used in production systems to build scalable and maintainable software.
