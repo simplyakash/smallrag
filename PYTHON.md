@@ -1503,3 +1503,873 @@ Remember this single sentence and you can reconstruct all five SOLID principles 
 # 🎤 Interview Answer
 
 SOLID is a set of object-oriented design principles that improves maintainability, extensibility, testability, and loose coupling. The five principles are Single Responsibility, Open-Closed, Liskov Substitution, Interface Segregation, and Dependency Inversion. These principles are widely used in production systems to build scalable and maintainable software.
+
+# asyncio in Python
+
+`asyncio` is Python's built-in library for writing:
+
+```text
+Asynchronous
+Concurrent
+Non-Blocking
+```
+
+programs.
+
+It is mainly used for:
+
+- API Calls
+- Web Scraping
+- Database Queries
+- Network Applications
+- Chat Servers
+- I/O-Bound Tasks
+
+---
+
+# Why Do We Need asyncio?
+
+Suppose you need to call 3 APIs.
+
+## Normal (Synchronous) Code
+
+```python
+import time
+
+def fetch():
+    time.sleep(2)
+
+fetch()
+fetch()
+fetch()
+```
+
+Execution:
+
+```text
+2s + 2s + 2s
+=
+6 seconds
+```
+
+Each task waits for the previous one to finish.
+
+---
+
+## With asyncio
+
+```python
+import asyncio
+
+async def fetch():
+    await asyncio.sleep(2)
+
+async def main():
+    await asyncio.gather(
+        fetch(),
+        fetch(),
+        fetch()
+    )
+
+asyncio.run(main())
+```
+
+Execution:
+
+```text
+≈ 2 seconds
+```
+
+All tasks run concurrently while waiting.
+
+---
+
+# Core Idea
+
+While one task is waiting for:
+
+```text
+Network
+Database
+File System
+API Response
+```
+
+the CPU can execute another task.
+
+Instead of:
+
+```text
+Task 1
+   ↓ Wait
+
+Task 2
+   ↓ Wait
+
+Task 3
+```
+
+You get:
+
+```text
+Task 1 ─┐
+Task 2 ─┼─ Waiting Together
+Task 3 ─┘
+```
+
+---
+
+# Important Keywords
+
+## async
+
+Defines an asynchronous function.
+
+```python
+async def fetch():
+    pass
+```
+
+Meaning:
+
+```text
+This function can pause and resume execution.
+```
+
+---
+
+## await
+
+Pauses the current coroutine until an operation completes.
+
+```python
+await asyncio.sleep(2)
+```
+
+Meaning:
+
+```text
+I'm waiting.
+Run some other task meanwhile.
+```
+
+---
+
+# Example
+
+```python
+import asyncio
+
+async def task(name):
+    print(f"Start {name}")
+    await asyncio.sleep(2)
+    print(f"End {name}")
+
+async def main():
+    await asyncio.gather(
+        task("A"),
+        task("B"),
+        task("C")
+    )
+
+asyncio.run(main())
+```
+
+Output:
+
+```text
+Start A
+Start B
+Start C
+
+(2 seconds later)
+
+End A
+End B
+End C
+```
+
+Total time:
+
+```text
+≈ 2 seconds
+```
+
+instead of:
+
+```text
+≈ 6 seconds
+```
+
+---
+
+# Event Loop
+
+The heart of asyncio.
+
+```text
+Event Loop
+     ↓
+Schedules Tasks
+     ↓
+Switches Tasks While Waiting
+```
+
+Visualization:
+
+```text
+Task A Waiting
+      ↓
+Run Task B
+      ↓
+Task B Waiting
+      ↓
+Run Task C
+      ↓
+Task A Ready
+      ↓
+Resume Task A
+```
+
+---
+
+# What is a Coroutine?
+
+An async function returns a:
+
+```text
+Coroutine
+```
+
+Example:
+
+```python
+async def hello():
+    return "Hi"
+```
+
+Calling:
+
+```python
+hello()
+```
+
+returns:
+
+```text
+Coroutine Object
+```
+
+NOT:
+
+```text
+"Hi"
+```
+
+To execute it:
+
+```python
+await hello()
+```
+
+or
+
+```python
+asyncio.run(hello())
+```
+
+---
+
+# asyncio vs Threads
+
+## Threading
+
+```text
+Multiple OS Threads
+```
+
+### Advantages
+
+```text
+Easy to use with blocking code
+```
+
+### Disadvantages
+
+```text
+Higher memory usage
+Context-switching overhead
+```
+
+---
+
+## asyncio
+
+```text
+Single Thread
+Single Event Loop
+Multiple Coroutines
+```
+
+### Advantages
+
+```text
+Lightweight
+Scalable
+Handles thousands of connections
+```
+
+### Disadvantages
+
+```text
+Not suitable for CPU-intensive tasks
+```
+
+---
+
+# When NOT to Use asyncio
+
+Avoid asyncio for:
+
+```text
+Machine Learning Training
+Image Processing
+Video Encoding
+Matrix Multiplication
+Heavy Numerical Computation
+```
+
+These are:
+
+```text
+CPU-Bound Tasks
+```
+
+Use:
+
+```text
+Multiprocessing
+```
+
+instead.
+
+---
+
+# Real-World Use Cases
+
+## Download Multiple URLs
+
+```python
+import aiohttp
+import asyncio
+
+async def fetch(url):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            return await response.text()
+```
+
+---
+
+## Async Database Access
+
+Libraries:
+
+```text
+asyncpg
+aiomysql
+motor (MongoDB)
+```
+
+---
+
+## High-Performance APIs
+
+Frameworks using asyncio:
+
+- FastAPI
+- Sanic
+- aiohttp
+
+---
+
+# Interview Answer
+
+`asyncio` is Python's built-in asynchronous programming framework. It uses an event loop, coroutines (`async` and `await`), and non-blocking I/O to execute multiple I/O-bound tasks concurrently within a single thread. It is commonly used for API calls, database operations, web servers, and network-intensive applications.
+
+---
+
+# Quick Memory Tricks
+
+## Threading vs asyncio
+
+```text
+Threading
+   ↓
+Multiple Threads
+
+asyncio
+   ↓
+One Thread
+Many Coroutines
+```
+
+---
+
+## CPU-Bound vs I/O-Bound
+
+```text
+CPU-Bound
+   ↓
+Multiprocessing
+
+I/O-Bound
+   ↓
+asyncio
+```
+
+---
+
+## async vs await
+
+```text
+async
+   ↓
+Function Can Pause
+
+await
+   ↓
+Pause Here
+Run Something Else
+```
+
+# Multiprocessing vs Threading in Python
+
+This is one of the most common Python interview questions.
+
+The short answer:
+
+```text
+CPU-Bound Tasks
+      ↓
+Multiprocessing
+
+I/O-Bound Tasks
+      ↓
+Threading
+```
+
+---
+
+# Why?
+
+Python has something called:
+
+```text
+GIL (Global Interpreter Lock)
+```
+
+The GIL allows only:
+
+```text
+One thread
+```
+
+to execute Python bytecode at a time.
+
+Because of this:
+
+```text
+Multiple threads
+≠
+Multiple CPU cores
+```
+
+for CPU-heavy work.
+
+---
+
+# Threading
+
+Threading creates:
+
+```text
+Multiple Threads
+Inside One Process
+```
+
+Example:
+
+```text
+Process
+├── Thread 1
+├── Thread 2
+├── Thread 3
+└── Thread 4
+```
+
+All threads:
+
+```text
+Share Memory
+```
+
+---
+
+## Best For
+
+```text
+Network Calls
+API Requests
+Database Queries
+Reading Files
+Downloading Files
+Web Scraping
+```
+
+These are:
+
+```text
+I/O-Bound Tasks
+```
+
+because most time is spent:
+
+```text
+Waiting
+```
+
+not computing.
+
+---
+
+## Example
+
+```python
+from threading import Thread
+import time
+
+def task():
+    time.sleep(2)
+    print("Done")
+
+threads = []
+
+for _ in range(5):
+    t = Thread(target=task)
+    t.start()
+    threads.append(t)
+
+for t in threads:
+    t.join()
+```
+
+Execution:
+
+```text
+≈ 2 seconds
+```
+
+instead of:
+
+```text
+≈ 10 seconds
+```
+
+---
+
+# Multiprocessing
+
+Multiprocessing creates:
+
+```text
+Multiple Processes
+```
+
+Each process has:
+
+```text
+Its Own Memory
+Its Own Python Interpreter
+Its Own GIL
+```
+
+Example:
+
+```text
+CPU Core 1 ← Process 1
+CPU Core 2 ← Process 2
+CPU Core 3 ← Process 3
+CPU Core 4 ← Process 4
+```
+
+True parallelism.
+
+---
+
+## Best For
+
+```text
+Machine Learning
+Image Processing
+Video Encoding
+Numerical Computation
+Data Processing
+Scientific Computing
+```
+
+These are:
+
+```text
+CPU-Bound Tasks
+```
+
+---
+
+## Example
+
+```python
+from multiprocessing import Pool
+
+def square(x):
+    return x * x
+
+if __name__ == "__main__":
+    with Pool(4) as pool:
+        result = pool.map(square, range(10))
+
+    print(result)
+```
+
+Uses multiple CPU cores.
+
+---
+
+# CPU-Bound Example
+
+Suppose:
+
+```text
+Calculate Prime Numbers
+```
+
+for:
+
+```text
+10 million numbers
+```
+
+Most time spent:
+
+```text
+Computing
+```
+
+not waiting.
+
+Use:
+
+```text
+Multiprocessing
+```
+
+because threads are limited by the GIL.
+
+---
+
+# I/O-Bound Example
+
+Suppose:
+
+```text
+Download 100 URLs
+```
+
+Most time spent:
+
+```text
+Waiting for Network
+```
+
+Use:
+
+```text
+Threading
+```
+
+or
+
+```text
+asyncio
+```
+
+---
+
+# Memory Usage
+
+## Threading
+
+```text
+Low Memory Usage
+```
+
+Threads share memory.
+
+Example:
+
+```text
+1 Process
+5 Threads
+```
+
+Memory:
+
+```text
+Shared
+```
+
+---
+
+## Multiprocessing
+
+```text
+Higher Memory Usage
+```
+
+Each process has its own memory.
+
+Example:
+
+```text
+5 Processes
+```
+
+Memory:
+
+```text
+Separate Copies
+```
+
+---
+
+# Communication
+
+## Threading
+
+Easy communication.
+
+```python
+shared_list.append(...)
+```
+
+because memory is shared.
+
+---
+
+## Multiprocessing
+
+Need:
+
+```python
+Queue
+Pipe
+Manager
+Value
+Array
+```
+
+because memory is isolated.
+
+---
+
+# Performance
+
+## CPU-Bound
+
+```text
+Threading       ❌
+Multiprocessing ✅
+```
+
+Reason:
+
+```text
+GIL
+```
+
+---
+
+## I/O-Bound
+
+```text
+Threading       ✅
+Multiprocessing ❌
+```
+
+Reason:
+
+```text
+Most time spent waiting.
+```
+
+---
+
+# Interview Comparison Table
+
+| Feature | Threading | Multiprocessing |
+|----------|-----------|----------------|
+| Unit | Thread | Process |
+| Memory | Shared | Separate |
+| GIL Affected | Yes | No |
+| Parallel CPU Execution | No | Yes |
+| Memory Usage | Low | High |
+| Communication | Easy | Harder |
+| Best For | I/O-Bound | CPU-Bound |
+
+---
+
+# Decision Tree
+
+```text
+Task Type?
+     │
+     ├── Waiting for Network/File/DB?
+     │          ↓
+     │      Threading
+     │
+     └── Heavy Computation?
+                ↓
+         Multiprocessing
+```
+
+---
+
+# Real-World Examples
+
+## Use Threading
+
+```text
+Web Scraper
+Chat Server
+API Gateway
+Database Queries
+File Upload Service
+```
+
+---
+
+## Use Multiprocessing
+
+```text
+Training ML Models
+Image Recognition
+Video Processing
+ETL Pipelines
+Scientific Simulations
+```
+
+---
+
+# Interview Answer
+
+Threading is best for I/O-bound tasks such as API calls, database queries, and file operations because threads can make progress while waiting for I/O. Multiprocessing is best for CPU-bound tasks such as machine learning, image processing, and numerical computations because each process has its own Python interpreter and GIL, allowing true parallel execution across multiple CPU cores.
