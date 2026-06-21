@@ -976,6 +976,17 @@ No existing code changes needed.
 ## Definition
 
 Child classes should be replaceable for parent classes.
+> A subclass should be able to replace its parent class without breaking the correctness of the program.
+
+In simple words:
+
+```text
+If B is a subclass of A,
+
+then anywhere A is used,
+B should work correctly too.
+```
+
 
 ### ❌ Bad Example
 
@@ -1099,141 +1110,393 @@ Depend on abstractions.
 Do not depend on concrete implementations.
 
 ---
+# 🧠 Another Example of Dependency Inversion Principle (DIP)
 
-### ❌ Bad Example
-
-```python
-class MySQLDatabase:
-
-    def save(self):
-        pass
-
-
-class UserService:
-
-    def __init__(self):
-        self.db = MySQLDatabase()
-```
-
-Problem:
+## Definition
 
 ```text
-UserService tightly coupled to MySQL
+High-level modules should not depend on low-level modules.
+
+Both should depend on abstractions.
 ```
 
 ---
 
-### ✅ Good Example
+# ❌ Bad Example
+
+Suppose we have a notification system.
+
+---
+
+## Email Service
+
+```python
+class EmailService:
+
+    def send(self, message):
+        print(f"Sending Email: {message}")
+```
+
+---
+
+## Notification Manager
+
+```python
+class NotificationManager:
+
+    def __init__(self):
+        self.email_service = EmailService()
+
+    def notify(self, message):
+        self.email_service.send(message)
+```
+
+---
+
+## Problem
+
+```text
+NotificationManager
+        ↓
+Depends Directly On
+        ↓
+EmailService
+```
+
+If tomorrow we want:
+
+```text
+SMS
+WhatsApp
+Slack
+Teams
+```
+
+we must modify:
+
+```python
+NotificationManager
+```
+
+This violates DIP.
+
+---
+
+# ✅ Good Example (Using Abstraction)
+
+## Step 1: Create Interface
 
 ```python
 from abc import ABC, abstractmethod
 
 
-class Database(ABC):
+class NotificationService(ABC):
 
     @abstractmethod
-    def save(self):
+    def send(self, message):
         pass
 ```
 
-Implementation:
+---
+
+## Step 2: Implement Email
 
 ```python
-class MySQLDatabase(Database):
+class EmailService(NotificationService):
 
-    def save(self):
-        print("Saving to MySQL")
+    def send(self, message):
+        print(f"Email: {message}")
 ```
-
-Service:
-
-```python
-class UserService:
-
-    def __init__(self, db):
-        self.db = db
-```
-
-Usage:
-
-```python
-db = MySQLDatabase()
-
-service = UserService(db)
-```
-
-Can later swap:
-
-```text
-PostgreSQL
-MongoDB
-Redis
-```
-
-without changing UserService.
 
 ---
 
-# 🧠 ML / AI Example
-
-Bad:
+## Step 3: Implement SMS
 
 ```python
-class RAGPipeline:
+class SMSService(NotificationService):
+
+    def send(self, message):
+        print(f"SMS: {message}")
+```
+
+---
+
+## Step 4: High-Level Module Depends on Interface
+
+```python
+class NotificationManager:
+
+    def __init__(self, service: NotificationService):
+        self.service = service
+
+    def notify(self, message):
+        self.service.send(message)
+```
+
+---
+
+## Usage
+
+### Email
+
+```python
+email_service = EmailService()
+
+manager = NotificationManager(email_service)
+
+manager.notify("Order Placed")
+```
+
+---
+
+### SMS
+
+```python
+sms_service = SMSService()
+
+manager = NotificationManager(sms_service)
+
+manager.notify("Order Placed")
+```
+
+No code changes required in:
+
+```python
+NotificationManager
+```
+
+---
+
+# Real Production Example
+
+## ❌ Bad
+
+```python
+class LLMApplication:
 
     def __init__(self):
-        self.vector_db = ChromaDB()
+        self.llm = OpenAI()
 ```
 
 Problem:
 
 ```text
-Tightly coupled to ChromaDB
+Tightly coupled to OpenAI
 ```
+
+Switching to:
+
+```text
+Gemini
+Claude
+Llama
+```
+
+requires code changes.
 
 ---
 
-Good:
+# ✅ Good
+
+## Abstract Interface
 
 ```python
-class VectorStore(ABC):
+class LLM(ABC):
 
     @abstractmethod
-    def search(self):
+    def generate(self, prompt):
         pass
 ```
 
-Implementations:
+---
+
+## OpenAI
 
 ```python
-ChromaDBStore
-PineconeStore
-FAISSStore
-WeaviateStore
+class OpenAILLM(LLM):
+
+    def generate(self, prompt):
+        return "OpenAI Response"
 ```
-
-Pipeline:
-
-```python
-class RAGPipeline:
-
-    def __init__(self, vector_store):
-        self.vector_store = vector_store
-```
-
-Now the vector database can be swapped easily.
 
 ---
 
-# 📊 Summary Table
+## Gemini
 
-| Principle | Meaning |
-|------------|----------|
-| S | Single Responsibility |
-| O | Open for Extension, Closed for Modification |
-| L | Child Class Should Replace Parent Safely |
-| I | Keep Interfaces Small |
-| D | Depend on Abstractions |
+```python
+class GeminiLLM(LLM):
+
+    def generate(self, prompt):
+        return "Gemini Response"
+```
+
+---
+
+## Application
+
+```python
+class ChatApplication:
+
+    def __init__(self, llm: LLM):
+        self.llm = llm
+
+    def chat(self, prompt):
+        return self.llm.generate(prompt)
+```
+
+---
+
+## Usage
+
+```python
+app = ChatApplication(OpenAILLM())
+```
+
+or
+
+```python
+app = ChatApplication(GeminiLLM())
+```
+
+No application code changes needed.
+
+---
+
+# Visual Diagram
+
+## ❌ Without DIP
+
+```text
+ChatApplication
+        ↓
+    OpenAI
+```
+
+Tightly coupled.
+
+---
+
+## ✅ With DIP
+
+```text
+ChatApplication
+        ↓
+       LLM
+      /   \
+     /     \
+ OpenAI   Gemini
+```
+
+Application depends on:
+
+```text
+LLM Interface
+```
+
+not on:
+
+```text
+OpenAI
+Gemini
+```
+
+---
+
+# Interview Answer
+
+Dependency Inversion Principle states that high-level modules should depend on abstractions rather than concrete implementations. For example, a notification manager should depend on a NotificationService interface instead of directly depending on EmailService. This allows implementations such as Email, SMS, or WhatsApp to be swapped without changing the business logic, improving flexibility, testability, and maintainability.
+---
+
+# 📊 Summary Table
+# 📊 SOLID Principles — Last Minute Interview Revision Sheet
+
+| Principle | Full Form | Core Idea | Memory Trick | Bad Smell | Good Design Example | Interview One-Liner |
+|------------|------------|------------|------------|------------|------------|------------|
+| **S** | **Single Responsibility Principle (SRP)** | A class should have only one reason to change. | **One Class = One Job** | Class handles multiple responsibilities such as DB, Email, Validation, Logging, etc. | Separate User, UserRepository, EmailService | A class should have only one responsibility and therefore only one reason to change. |
+| **O** | **Open Closed Principle (OCP)** | Software should be open for extension but closed for modification. | **Extend, Don't Modify** | Adding a new feature requires changing existing code with multiple if-else blocks. | Base interface + new subclasses for new functionality | New functionality should be added by extending existing code rather than modifying tested code. |
+| **L** | **Liskov Substitution Principle (LSP)** | Child classes must be replaceable for parent classes without breaking behavior. | **Replace Safely** | Child class throws errors for methods inherited from parent. | Sparrow extends Bird, Penguin does not implement Flyable. | Derived classes should be substitutable for their base classes without altering correctness. |
+| **I** | **Interface Segregation Principle (ISP)** | Clients should not be forced to depend on methods they do not use. | **Keep Interfaces Small** | Fat interfaces with many unrelated methods. | Separate Workable and Eatable interfaces. | Create small, focused interfaces rather than large generic ones. |
+| **D** | **Dependency Inversion Principle (DIP)** | Depend on abstractions, not concrete implementations. | **Code to Interfaces** | Business logic directly creates EmailService, MySQL, OpenAI, etc. | Inject abstractions via constructor dependency injection. | High-level modules should depend on abstractions rather than low-level implementations. |
+
+---
+
+# 🧠 Quick Memory Tricks
+
+| Principle | Memory Trick |
+|------------|-------------|
+| **S** | One Class = One Job |
+| **O** | Extend, Don't Modify |
+| **L** | Replace Child for Parent Safely |
+| **I** | Small Interfaces Only |
+| **D** | Code to Interfaces |
+
+---
+
+# 🚨 Common Interview Examples
+
+| Principle | Bad Example | Good Example |
+|------------|-------------|-------------|
+| **SRP** | User class does DB + Email + Validation | Separate User, Repository, EmailService |
+| **OCP** | Huge if-else payment processor | Payment interface + CardPayment, UPIPayment |
+| **LSP** | Penguin inherits Bird.fly() | FlyingBird and NonFlyingBird hierarchy |
+| **ISP** | Worker interface has work() and eat() | Separate Workable and Eatable |
+| **DIP** | ChatApp directly uses OpenAI | ChatApp depends on LLM interface |
+
+---
+
+# 🤖 ML / AI Examples
+
+| Principle | ML/AI Example |
+|------------|-------------|
+| **SRP** | Separate Retrieval, Reranking, Prompting, Generation modules |
+| **OCP** | Add Gemini/Claude/OpenAI support without changing pipeline code |
+| **LSP** | Any Vector Store implementation should behave like a VectorStore interface |
+| **ISP** | Separate EmbeddingProvider and LLMProvider interfaces |
+| **DIP** | RAG Pipeline depends on Retriever interface, not Pinecone or FAISS directly |
+
+---
+
+# 🎯 30-Second Interview Answer
+
+```text
+S → One Class, One Responsibility
+
+O → Extend Existing Code, Don't Modify It
+
+L → Child Objects Must Replace Parent Objects Safely
+
+I → Create Small Focused Interfaces
+
+D → Depend on Abstractions Instead of Concrete Implementations
+```
+
+---
+
+# 🎤 10-Second Interview Answer
+
+```text
+SOLID principles are five object-oriented design principles that improve maintainability, scalability, flexibility, and testability of software systems.
+
+S → Single Responsibility
+O → Open Closed
+L → Liskov Substitution
+I → Interface Segregation
+D → Dependency Inversion
+```
+
+---
+
+# 🔥 Ultimate Memory Sentence
+
+```text
+One Job,
+Extend Don't Modify,
+Replace Safely,
+Keep Interfaces Small,
+Depend on Abstractions.
+```
+
+Remember this single sentence and you can reconstruct all five SOLID principles during an interview.
 
 ---
 

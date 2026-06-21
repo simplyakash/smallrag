@@ -793,3 +793,607 @@ User
 # Senior ML Engineer Interview Answer
 
 A modern recommendation system typically uses a multi-stage architecture. Candidate generation retrieves a small set of potentially relevant items using techniques such as collaborative filtering, two-tower models, and ANN search. A ranking model then scores candidates using user, item, interaction, and contextual features. A re-ranking stage improves diversity, freshness, and business objectives. The system relies on feature stores to avoid training-serving skew, supports both batch and real-time features, and is monitored using infrastructure, ML, and business metrics. Key design considerations include scalability, latency, cold-start handling, and retrieval-quality versus cost trade-offs.
+
+
+# Inverse Document Frequency (IDF)
+
+IDF is a measure of **how important or rare a word is across all documents**.
+
+The intuition is:
+
+```text
+Common words
+    ↓
+Less useful
+
+Rare words
+    ↓
+More useful
+```
+
+---
+
+# Why Do We Need IDF?
+
+Suppose we have 3 documents:
+
+```text
+Doc1: "The cat sat on the mat"
+Doc2: "The dog sat on the floor"
+Doc3: "The cat chased the dog"
+```
+
+The word:
+
+```text
+"the"
+```
+
+appears everywhere.
+
+The word:
+
+```text
+"mat"
+```
+
+appears only once.
+
+Clearly:
+
+```text
+"mat"
+```
+
+helps identify a document much better than:
+
+```text
+"the"
+```
+
+IDF captures this idea.
+
+---
+
+# Formula
+
+```text
+IDF(word) = log(N / DF)
+```
+
+where:
+
+```text
+N  = Total number of documents
+DF = Number of documents containing the word
+```
+
+---
+
+# Example
+
+Suppose:
+
+```text
+Total Documents (N) = 1000
+```
+
+Word:
+
+```text
+"laptop"
+```
+
+appears in:
+
+```text
+DF = 10 documents
+```
+
+Then:
+
+```text
+IDF = log(1000 / 10)
+     = log(100)
+     ≈ 2
+```
+
+High IDF.
+
+Meaning:
+
+```text
+Rare word
+```
+
+---
+
+# Common Word Example
+
+Word:
+
+```text
+"the"
+```
+
+appears in:
+
+```text
+DF = 900
+```
+
+Then:
+
+```text
+IDF = log(1000 / 900)
+     ≈ 0.046
+```
+
+Very low.
+
+Meaning:
+
+```text
+Not useful for ranking
+```
+
+---
+
+# Visualization
+
+```text
+Word         DF      IDF
+
+the          900     0.046
+and          850     0.07
+laptop        10     2.0
+macbook        2     2.7
+```
+
+As DF increases:
+
+```text
+IDF decreases
+```
+
+As DF decreases:
+
+```text
+IDF increases
+```
+
+---
+
+# What is DF?
+
+DF means:
+
+```text
+Document Frequency
+```
+
+Number of documents containing the term.
+
+Example:
+
+```text
+Doc1: Apple Laptop
+Doc2: Dell Laptop
+Doc3: Gaming Mouse
+Doc4: HP Laptop
+```
+
+For word:
+
+```text
+Laptop
+```
+
+DF:
+
+```text
+3
+```
+
+because it appears in:
+
+```text
+Doc1
+Doc2
+Doc4
+```
+
+---
+
+# TF-IDF
+
+IDF is usually combined with TF.
+
+### TF (Term Frequency)
+
+How often the word appears in a document.
+
+### IDF
+
+How rare the word is across all documents.
+
+Combined:
+
+```text
+TF-IDF = TF × IDF
+```
+
+---
+
+# Example
+
+Query:
+
+```text
+Gaming Laptop
+```
+
+Documents:
+
+```text
+Doc1:
+Gaming Gaming Gaming Laptop
+
+Doc2:
+Laptop
+
+Doc3:
+Gaming Laptop RTX 5090
+```
+
+Scores depend on:
+
+```text
+TF
++
+IDF
+```
+
+Rare and important terms get larger scores.
+
+---
+
+# Why BM25 Uses IDF
+
+BM25 improves TF-IDF but still relies heavily on IDF.
+
+```text
+Rare terms
+     ↓
+Higher weight
+
+Common terms
+     ↓
+Lower weight
+```
+
+Query:
+
+```text
+"wireless gaming mouse"
+```
+
+Words like:
+
+```text
+gaming
+mouse
+wireless
+```
+
+receive higher importance than:
+
+```text
+the
+is
+for
+```
+
+---
+
+# Interview Answer
+
+IDF (Inverse Document Frequency) measures how rare or informative a term is across a collection of documents. It is calculated as:
+
+```text
+IDF = log(N / DF)
+```
+
+where N is the total number of documents and DF is the number of documents containing the term. Rare words receive a high IDF score, while common words receive a low IDF score. IDF is commonly used in TF-IDF and BM25 ranking algorithms.
+
+# Term Frequency (TF)
+
+TF measures **how often a word appears in a document**.
+
+The intuition is:
+
+```text
+More occurrences in a document
+           ↓
+More important to that document
+```
+
+---
+
+# Formula
+
+Simplest version:
+
+```text
+TF(term) = Number of times term appears in document
+```
+
+---
+
+# Example
+
+Document:
+
+```text
+"gaming laptop gaming mouse gaming keyboard"
+```
+
+Count occurrences:
+
+```text
+gaming   = 3
+laptop   = 1
+mouse    = 1
+keyboard = 1
+```
+
+Therefore:
+
+```text
+TF(gaming) = 3
+TF(laptop) = 1
+```
+
+The document is probably more about:
+
+```text
+gaming
+```
+
+than:
+
+```text
+laptop
+```
+
+---
+
+# Normalized TF
+
+Sometimes documents have different lengths.
+
+So we normalize TF:
+
+```text
+TF(term)
+=
+(Term Count)
+/
+(Total Number of Words)
+```
+
+---
+
+# Example
+
+Document:
+
+```text
+"gaming laptop gaming mouse gaming keyboard"
+```
+
+Total words:
+
+```text
+6
+```
+
+Counts:
+
+```text
+gaming = 3
+```
+
+Normalized TF:
+
+```text
+TF(gaming)
+=
+3/6
+=
+0.5
+```
+
+---
+
+# Why TF Alone Is Not Enough
+
+Suppose every document contains:
+
+```text
+the
+the
+the
+the
+the
+```
+
+TF would be very high.
+
+But:
+
+```text
+"the"
+```
+
+is not useful for search.
+
+That's why we combine TF with IDF.
+
+---
+
+# TF + IDF
+
+Consider:
+
+```text
+Doc1:
+gaming gaming gaming laptop
+
+Doc2:
+the the the laptop
+```
+
+TF Scores:
+
+```text
+TF(gaming) = 3
+TF(the)    = 3
+```
+
+Both are equal.
+
+But:
+
+```text
+gaming
+```
+
+is much more informative than:
+
+```text
+the
+```
+
+IDF fixes this.
+
+---
+
+# TF-IDF
+
+Formula:
+
+```text
+TF-IDF = TF × IDF
+```
+
+Example:
+
+```text
+TF(gaming) = 3
+IDF(gaming) = 2
+```
+
+Score:
+
+```text
+3 × 2 = 6
+```
+
+---
+
+Common word:
+
+```text
+TF(the) = 3
+IDF(the) = 0.05
+```
+
+Score:
+
+```text
+3 × 0.05 = 0.15
+```
+
+Result:
+
+```text
+gaming > the
+```
+
+which is what we want.
+
+---
+
+# Search Example
+
+Query:
+
+```text
+gaming laptop
+```
+
+Documents:
+
+```text
+Doc1:
+gaming gaming gaming laptop
+
+Doc2:
+laptop stand for desk
+
+Doc3:
+gaming mouse keyboard
+```
+
+TF:
+
+```text
+Doc1:
+gaming = 3
+laptop = 1
+
+Doc2:
+gaming = 0
+laptop = 1
+
+Doc3:
+gaming = 1
+laptop = 0
+```
+
+Doc1 gets the highest score because query terms appear more frequently.
+
+---
+
+# BM25 vs TF
+
+BM25 improves TF because raw TF can be misleading.
+
+Example:
+
+```text
+gaming repeated 100 times
+```
+
+should not make a document 100× better.
+
+BM25 uses:
+
+```text
+Saturated TF
+```
+
+meaning:
+
+```text
+TF helps
+      ↓
+but with diminishing returns
+```
+
+---
+
+# Interview Answer
+
+Term Frequency (TF) measures how often a term appears in a document. A higher TF indicates that the term is more important to that document. TF is usually combined with Inverse Document Frequency (IDF) to form TF-IDF, which balances term importance within a document against how common the term is across all documents.

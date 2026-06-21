@@ -75,54 +75,58 @@ This section separates the tools used in the local learning project from the too
 
 ### Local MVP Tools Used in This Repository
 
-| Task | Technology Used | Why It Is Used |
-| --- | --- | --- |
-| Download small Amazon dataset | `datasets` | Streams a small Amazon Reviews sample from Hugging Face. |
-| Store local sample data | `CSV`, `data/amazon_recommendation/` | Keeps `events.csv` and `products.csv` simple and easy to inspect. |
-| Basic MVP recommendations | Python standard library | Builds item-to-item collaborative filtering without heavy dependencies. |
-| User-product interaction modeling | Item-to-item collaborative filtering | Finds products that co-occur in user histories. |
-| Two-tower retrieval model | `PyTorch` | Builds separate user and product neural-network towers. |
-| User embeddings | `torch.nn.Embedding` | Converts user IDs into dense vectors. |
-| Product embeddings | `torch.nn.Embedding` | Converts product IDs into dense vectors. |
-| No-training architecture demo | Deterministic random PyTorch weights | Shows the two-tower and FAISS flow without training. |
-| No-training useful retrieval | `scikit-learn` TF-IDF | Builds lightweight product/user profile text embeddings without PyTorch. |
-| Optional heavy text retrieval | `sentence-transformers/all-MiniLM-L6-v2` | Uses a pretrained transformer checkpoint when the machine has enough disk. |
-| Product vector retrieval | `FAISS` / `faiss-cpu` | Searches nearest product embeddings quickly. |
-| Recommendation API | `FastAPI` | Exposes `/recommend` and `/health` endpoints. |
-| Local API server | `Uvicorn` | Runs the FastAPI app locally. |
-| Request/response validation | `Pydantic` | Defines the API request schema. |
-| Numeric arrays for FAISS | `NumPy` | Converts text embeddings into FAISS-compatible arrays. |
-| Production-style validation hook | `Great Expectations` | Provides a place for schema and data quality checks before building the index. |
-| Production-style experiment metadata | `MLflow` | Logs index build metadata and artifact information. |
-| Optional model training | `PyTorch`, pairwise ranking loss | Learns user/product embeddings from positive and negative examples. |
-| Model checkpointing | `torch.save` | Saves two-tower weights and ID mappings locally. |
-| Local generated artifacts | `.gitignore`, `data/`, `models/` | Prevents datasets and model checkpoints from being committed. |
+
+| Task                                 | Technology Used                          | Why It Is Used                                                                 |
+| ------------------------------------ | ---------------------------------------- | ------------------------------------------------------------------------------ |
+| Download small Amazon dataset        | `datasets`                               | Streams a small Amazon Reviews sample from Hugging Face.                       |
+| Store local sample data              | `CSV`, `data/amazon_recommendation/`     | Keeps `events.csv` and `products.csv` simple and easy to inspect.              |
+| Basic MVP recommendations            | Python standard library                  | Builds item-to-item collaborative filtering without heavy dependencies.        |
+| User-product interaction modeling    | Item-to-item collaborative filtering     | Finds products that co-occur in user histories.                                |
+| Two-tower retrieval model            | `PyTorch`                                | Builds separate user and product neural-network towers.                        |
+| User embeddings                      | `torch.nn.Embedding`                     | Converts user IDs into dense vectors.                                          |
+| Product embeddings                   | `torch.nn.Embedding`                     | Converts product IDs into dense vectors.                                       |
+| No-training architecture demo        | Deterministic random PyTorch weights     | Shows the two-tower and FAISS flow without training.                           |
+| No-training useful retrieval         | `scikit-learn` TF-IDF                    | Builds lightweight product/user profile text embeddings without PyTorch.       |
+| Optional heavy text retrieval        | `sentence-transformers/all-MiniLM-L6-v2` | Uses a pretrained transformer checkpoint when the machine has enough disk.     |
+| Product vector retrieval             | `FAISS` / `faiss-cpu`                    | Searches nearest product embeddings quickly.                                   |
+| Recommendation API                   | `FastAPI`                                | Exposes `/recommend` and `/health` endpoints.                                  |
+| Local API server                     | `Uvicorn`                                | Runs the FastAPI app locally.                                                  |
+| Request/response validation          | `Pydantic`                               | Defines the API request schema.                                                |
+| Numeric arrays for FAISS             | `NumPy`                                  | Converts text embeddings into FAISS-compatible arrays.                         |
+| Production-style validation hook     | `Great Expectations`                     | Provides a place for schema and data quality checks before building the index. |
+| Production-style experiment metadata | `MLflow`                                 | Logs index build metadata and artifact information.                            |
+| Optional model training              | `PyTorch`, pairwise ranking loss         | Learns user/product embeddings from positive and negative examples.            |
+| Model checkpointing                  | `torch.save`                             | Saves two-tower weights and ID mappings locally.                               |
+| Local generated artifacts            | `.gitignore`, `data/`, `models/`         | Prevents datasets and model checkpoints from being committed.                  |
+
 
 ### Production Tools by Task
 
-| Task | Standard Tools | Purpose |
-| --- | --- | --- |
-| Event collection | `Kafka`, `Kinesis`, `Pulsar` | Collects clicks, views, add-to-cart events, purchases, search queries, and impressions in near real time. |
-| Data lake storage | `S3`, `GCS`, `ADLS` | Stores raw logs, catalog snapshots, training datasets, model artifacts, and replayable historical data. |
-| Data warehouse | `Snowflake`, `BigQuery`, `Redshift` | Supports analytics, BI dashboards, metric computation, and SQL-based feature exploration. |
-| Batch processing | `Spark`, `Databricks` | Builds large-scale training datasets, aggregates user history, computes item popularity, and creates offline features. |
-| Stream processing | `Flink`, `Spark Structured Streaming`, `Kafka Streams` | Computes real-time session features such as recent clicks, active cart, and current category intent. |
-| Workflow orchestration | `Airflow`, `Dagster`, `Prefect` | Schedules dataset creation, feature generation, model training, validation, and deployment jobs. |
-| Feature store | `Feast`, `Tecton`, `Vertex AI Feature Store` | Reuses the same feature definitions for training and serving to avoid training-serving skew. |
-| Offline feature storage | `S3`, `GCS`, `ADLS`, `Snowflake`, `BigQuery`, `Redshift` | Stores historical features used for model training and backfills. |
-| Online feature storage | `Redis`, `DynamoDB`, `Cassandra`, `Feast Online Store`, `Tecton Online Store` | Serves low-latency user/session/product features during recommendation requests. |
-| Retrieval model training | `PyTorch`, `TensorFlow`, `JAX` | Trains two-tower, DSSM, or other embedding-based candidate generation models. |
-| Ranking model training | `LightGBM`, `XGBoost`, `DeepFM`, `Wide & Deep`, `DCN`, `PyTorch`, `TensorFlow` | Scores retrieved candidates using richer user, item, context, and business features. |
-| Vector search | `FAISS`, `ScaNN`, `Milvus`, `Pinecone`, `Weaviate`, `OpenSearch k-NN` | Retrieves nearest product embeddings for a user or session embedding. |
-| Experiment tracking | `MLflow`, `Weights & Biases` | Tracks model versions, parameters, metrics, artifacts, and training runs. |
-| Model registry | `MLflow Model Registry`, `SageMaker Model Registry` | Stores approved model versions and supports promotion from staging to production. |
-| Model serving | `Triton`, `TorchServe`, `TensorFlow Serving`, `KServe`, `SageMaker Endpoint` | Serves retrieval and ranking models behind scalable APIs. |
-| Recommendation API | `FastAPI`, `gRPC`, `Java/Spring`, `Go` | Exposes recommendation endpoints to web, mobile, search, cart, and email systems. |
-| API hosting | `Kubernetes`, `EKS`, `GKE`, `AKS`, `ECS` | Runs serving services with autoscaling, rolling deploys, and high availability. |
-| Cache | `Redis`, `Memcached` | Caches popular recommendations, user embeddings, product embeddings, and fallback lists. |
-| Data validation | `Great Expectations`, `TensorFlow Data Validation` | Checks schema, nulls, ranges, data drift, and feature quality before training or serving. |
-| Model monitoring | `Prometheus`, `Grafana`, `Datadog`, `CloudWatch` | Tracks latency, QPS, error rate, model drift, feature freshness, and business metrics. |
-| A/B testing | `Statsig`, `Optimizely`, internal experimentation platform | Measures online impact of recommendation changes against control traffic. |
+
+| Task                     | Standard Tools                                                                 | Purpose                                                                                                                |
+| ------------------------ | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| Event collection         | `Kafka`, `Kinesis`, `Pulsar`                                                   | Collects clicks, views, add-to-cart events, purchases, search queries, and impressions in near real time.              |
+| Data lake storage        | `S3`, `GCS`, `ADLS`                                                            | Stores raw logs, catalog snapshots, training datasets, model artifacts, and replayable historical data.                |
+| Data warehouse           | `Snowflake`, `BigQuery`, `Redshift`                                            | Supports analytics, BI dashboards, metric computation, and SQL-based feature exploration.                              |
+| Batch processing         | `Spark`, `Databricks`                                                          | Builds large-scale training datasets, aggregates user history, computes item popularity, and creates offline features. |
+| Stream processing        | `Flink`, `Spark Structured Streaming`, `Kafka Streams`                         | Computes real-time session features such as recent clicks, active cart, and current category intent.                   |
+| Workflow orchestration   | `Airflow`, `Dagster`, `Prefect`                                                | Schedules dataset creation, feature generation, model training, validation, and deployment jobs.                       |
+| Feature store            | `Feast`, `Tecton`, `Vertex AI Feature Store`                                   | Reuses the same feature definitions for training and serving to avoid training-serving skew.                           |
+| Offline feature storage  | `S3`, `GCS`, `ADLS`, `Snowflake`, `BigQuery`, `Redshift`                       | Stores historical features used for model training and backfills.                                                      |
+| Online feature storage   | `Redis`, `DynamoDB`, `Cassandra`, `Feast Online Store`, `Tecton Online Store`  | Serves low-latency user/session/product features during recommendation requests.                                       |
+| Retrieval model training | `PyTorch`, `TensorFlow`, `JAX`                                                 | Trains two-tower, DSSM, or other embedding-based candidate generation models.                                          |
+| Ranking model training   | `LightGBM`, `XGBoost`, `DeepFM`, `Wide & Deep`, `DCN`, `PyTorch`, `TensorFlow` | Scores retrieved candidates using richer user, item, context, and business features.                                   |
+| Vector search            | `FAISS`, `ScaNN`, `Milvus`, `Pinecone`, `Weaviate`, `OpenSearch k-NN`          | Retrieves nearest product embeddings for a user or session embedding.                                                  |
+| Experiment tracking      | `MLflow`, `Weights & Biases`                                                   | Tracks model versions, parameters, metrics, artifacts, and training runs.                                              |
+| Model registry           | `MLflow Model Registry`, `SageMaker Model Registry`                            | Stores approved model versions and supports promotion from staging to production.                                      |
+| Model serving            | `Triton`, `TorchServe`, `TensorFlow Serving`, `KServe`, `SageMaker Endpoint`   | Serves retrieval and ranking models behind scalable APIs.                                                              |
+| Recommendation API       | `FastAPI`, `gRPC`, `Java/Spring`, `Go`                                         | Exposes recommendation endpoints to web, mobile, search, cart, and email systems.                                      |
+| API hosting              | `Kubernetes`, `EKS`, `GKE`, `AKS`, `ECS`                                       | Runs serving services with autoscaling, rolling deploys, and high availability.                                        |
+| Cache                    | `Redis`, `Memcached`                                                           | Caches popular recommendations, user embeddings, product embeddings, and fallback lists.                               |
+| Data validation          | `Great Expectations`, `TensorFlow Data Validation`                             | Checks schema, nulls, ranges, data drift, and feature quality before training or serving.                              |
+| Model monitoring         | `Prometheus`, `Grafana`, `Datadog`, `CloudWatch`                               | Tracks latency, QPS, error rate, model drift, feature freshness, and business metrics.                                 |
+| A/B testing              | `Statsig`, `Optimizely`, internal experimentation platform                     | Measures online impact of recommendation changes against control traffic.                                              |
+
 
 ### Where These Fit in the Architecture
 
@@ -257,18 +261,20 @@ python -m src.amazon_two_tower_recommendation --train --epochs 5 --top-k 10
 
 The local implementation now wires the production concepts into concrete files:
 
-| Production Task | Technology | Function in This System | Repo Location |
-| --- | --- | --- | --- |
-| Data lake | Local CSV now, maps to `S3` / `GCS` / `ADLS` | Stores raw events, product catalog data, and replayable source files for feature generation and index builds. | `data/amazon_recommendation/`, `configs/production_recommendation_stack.yaml` |
-| Warehouse | Local files now, maps to `Snowflake` / `BigQuery` / `Redshift` | Represents the analytics layer where teams would query events, products, user behavior, and business metrics. | `configs/production_recommendation_stack.yaml` |
-| Processing | Python local now, maps to `Spark` / `Databricks` / `Flink` | Transforms raw events into product/user features such as interaction counts, average ratings, and recent user history. | `src/amazon_feature_store.py`, `configs/production_recommendation_stack.yaml` |
-| Orchestration | `Airflow`, `Dagster`, `Prefect` templates | Schedules the pipeline steps: data download, feature materialization, FAISS index build, and MLflow logging. | `orchestration/` |
-| Feature store | Local feature store artifacts plus Feast definitions | Stores reusable product/user features so retrieval and serving use the same feature values. | `src/amazon_feature_store.py`, `feature_store/recommendation_feature_repo/` |
-| Retrieval | `FAISS` | Stores product vectors and retrieves nearest products for a user profile or query embedding. | `src/amazon_pretrained_production_retrieval.py`, `models/amazon_pretrained_retrieval/products.faiss` |
-| Serving | `FastAPI`, `Uvicorn` | Exposes recommendation APIs through `/health` and `/recommend` endpoints. | `src/amazon_pretrained_production_retrieval.py` |
-| Experiment tracking | `MLflow` | Logs retrieval index build metadata such as encoder type, product count, and embedding dimension. | `log_build_to_mlflow()` in `src/amazon_pretrained_production_retrieval.py` |
-| Model registry | `MLflow Model Registry` / `SageMaker Model Registry` mapping | Defines where approved retrieval/ranking model versions would be promoted and loaded from in production. | `configs/production_recommendation_stack.yaml` |
-| Data validation | Built-in checks, `Great Expectations` suite, `TFDV` schema template | Validates required columns, non-empty data, event schema, and expected value constraints before building features or indexes. | `validation/` |
+
+| Production Task     | Technology                                                          | Function in This System                                                                                                       | Repo Location                                                                                        |
+| ------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Data lake           | Local CSV now, maps to `S3` / `GCS` / `ADLS`                        | Stores raw events, product catalog data, and replayable source files for feature generation and index builds.                 | `data/amazon_recommendation/`, `configs/production_recommendation_stack.yaml`                        |
+| Warehouse           | Local files now, maps to `Snowflake` / `BigQuery` / `Redshift`      | Represents the analytics layer where teams would query events, products, user behavior, and business metrics.                 | `configs/production_recommendation_stack.yaml`                                                       |
+| Processing          | Python local now, maps to `Spark` / `Databricks` / `Flink`          | Transforms raw events into product/user features such as interaction counts, average ratings, and recent user history.        | `src/amazon_feature_store.py`, `configs/production_recommendation_stack.yaml`                        |
+| Orchestration       | `Airflow`, `Dagster`, `Prefect` templates                           | Schedules the pipeline steps: data download, feature materialization, FAISS index build, and MLflow logging.                  | `orchestration/`                                                                                     |
+| Feature store       | Local feature store artifacts plus Feast definitions                | Stores reusable product/user features so retrieval and serving use the same feature values.                                   | `src/amazon_feature_store.py`, `feature_store/recommendation_feature_repo/`                          |
+| Retrieval           | `FAISS`                                                             | Stores product vectors and retrieves nearest products for a user profile or query embedding.                                  | `src/amazon_pretrained_production_retrieval.py`, `models/amazon_pretrained_retrieval/products.faiss` |
+| Serving             | `FastAPI`, `Uvicorn`                                                | Exposes recommendation APIs through `/health` and `/recommend` endpoints.                                                     | `src/amazon_pretrained_production_retrieval.py`                                                      |
+| Experiment tracking | `MLflow`                                                            | Logs retrieval index build metadata such as encoder type, product count, and embedding dimension.                             | `log_build_to_mlflow()` in `src/amazon_pretrained_production_retrieval.py`                           |
+| Model registry      | `MLflow Model Registry` / `SageMaker Model Registry` mapping        | Defines where approved retrieval/ranking model versions would be promoted and loaded from in production.                      | `configs/production_recommendation_stack.yaml`                                                       |
+| Data validation     | Built-in checks, `Great Expectations` suite, `TFDV` schema template | Validates required columns, non-empty data, event schema, and expected value constraints before building features or indexes. | `validation/`                                                                                        |
+
 
 Run the implemented local production path in the `rag` conda environment:
 
@@ -639,44 +645,30 @@ For a small local prototype, start with a public retail recommendation dataset i
 ### Best Small Dataset Options
 
 1. Amazon Reviews Dataset, small category subset
-
-   Use one small category such as `Beauty`, `Video Games`, `Musical Instruments`, or `Office Products`.
-
+  Use one small category such as `Beauty`, `Video Games`, `Musical Instruments`, or `Office Products`.
    Useful fields:
-
-   - `reviewerID` as `user_id`
-   - `asin` as `product_id`
-   - `overall` as rating
-   - `unixReviewTime` as timestamp
-   - product metadata such as title, category, brand, and price when available
-
+  - `reviewerID` as `user_id`
+  - `asin` as `product_id`
+  - `overall` as rating
+  - `unixReviewTime` as timestamp
+  - product metadata such as title, category, brand, and price when available
    This is the closest dataset for an Amazon-style recommender.
-
 2. RetailRocket Recommender System Dataset
-
-   Good for event-based recommendation because it includes views, add-to-cart events, and transactions.
-
+  Good for event-based recommendation because it includes views, add-to-cart events, and transactions.
    Useful fields:
-
-   - `visitorid` as `user_id`
-   - `itemid` as `product_id`
-   - `event` as interaction type
-   - `timestamp`
-
+  - `visitorid` as `user_id`
+  - `itemid` as `product_id`
+  - `event` as interaction type
+  - `timestamp`
    This is better if the goal is to model shopping sessions.
-
 3. Instacart Market Basket Dataset
-
-   Good for basket recommendations such as "frequently bought together".
-
+  Good for basket recommendations such as "frequently bought together".
    Useful fields:
-
-   - `user_id`
-   - `order_id`
-   - `product_id`
-   - `department`
-   - `aisle`
-
+  - `user_id`
+  - `order_id`
+  - `product_id`
+  - `department`
+  - `aisle`
    This is useful for cart cross-sell and bundle recommendations.
 
 ### Recommended First Dataset
@@ -891,12 +883,14 @@ truck
 
 Co-occurrence matrix:
 
-| Word | pet | animal | vehicle | road |
-|--------|--------|--------|--------|--------|
-| cat | 10 | 8 | 0 | 0 |
-| dog | 9 | 10 | 0 | 0 |
-| car | 0 | 0 | 8 | 10 |
-| truck | 0 | 0 | 10 | 9 |
+
+| Word  | pet | animal | vehicle | road |
+| ----- | --- | ------ | ------- | ---- |
+| cat   | 10  | 8      | 0       | 0    |
+| dog   | 9   | 10     | 0       | 0    |
+| car   | 0   | 0      | 8       | 10   |
+| truck | 0   | 0      | 10      | 9    |
+
 
 ---
 
@@ -1282,3 +1276,264 @@ and directly produces dense vectors.
 # Interview Answer
 
 A co-occurrence matrix represents each word as a vector of context-word counts. To compare words, each vector is first normalized, typically using L2 normalization, which removes the effect of magnitude differences. Cosine similarity is then computed between the normalized vectors to measure how similar their context distributions are. Words appearing in similar contexts produce similar vectors and therefore have high cosine similarity scores. In classical NLP systems, PPMI normalization and SVD were often applied before computing cosine similarity to obtain more meaningful semantic representations.
+
+# 🎧 Spotify Recommendation System — Which Data Structure Gives Constant Time Access?
+
+This is actually a tricky interview question.
+
+The answer depends on **what operation** needs constant-time access.
+
+---
+
+# 🎯 Requirement 1: Get User Profile Quickly
+
+Example:
+
+```text
+User ID = 12345
+```
+
+Need:
+
+```text
+Liked Songs
+Recently Played
+Favorite Genres
+```
+
+```text
+
+```
+
+Use:
+
+```python
+dict[user_id] -> UserProfile
+```
+
+Complexity:
+
+```text
+Lookup = O(1)
+```
+
+---
+
+# 🎯 Requirement 2: Get Song Metadata Quickly
+
+Example:
+
+```text
+Song ID = 5678
+```
+
+Need:
+
+```text
+Artist
+Genre
+Duration
+Popularity
+```
+
+Use:
+
+```python
+dict[song_id] -> Song
+```
+
+Complexity:
+
+```text
+O(1)
+```
+
+---
+
+# 🎯 Requirement 3: Recommend Similar Songs
+
+Example:
+
+```text
+Current Song:
+Shape of You
+```
+
+Need:
+
+```text
+Top Similar Songs
+```
+
+A simple hash map won't work.
+
+---
+
+Use:
+
+```python
+song_id -> list of similar songs
+```
+
+Example:
+
+```python
+similar_songs = {
+    "song_1": ["song_2", "song_3", "song_4"]
+}
+```
+
+Complexity:
+
+```text
+Lookup = O(1)
+```
+
+This is essentially a:
+
+```text
+Graph (Adjacency List)
+```
+
+---
+
+# 🎯 Requirement 4: Top Trending Songs
+
+Need:
+
+```text
+Top K Songs
+```
+
+Use:
+
+```text
+Max Heap
+Priority Queue
+```
+
+Complexity:
+
+```text
+Insert = O(log n)
+
+Get Top Song = O(1)
+
+Remove Top Song = O(log n)
+```
+
+---
+
+# 🎯 Requirement 5: Similarity Search Using Embeddings
+
+Modern Spotify-like systems use:
+
+```text
+Song Embeddings
+User Embeddings
+```
+
+Example:
+
+```text
+768-dimensional vectors
+```
+
+Need:
+
+```text
+Nearest Neighbour Search
+```
+
+Use:
+
+```text
+HNSW
+FAISS
+ScaNN
+Annoy
+```
+
+Complexity:
+
+```text
+Approximate O(log n)
+```
+
+Not O(1).
+
+---
+
+# 🚨 What Interviewers Usually Expect
+
+If they specifically ask:
+
+```text
+"Which data structure provides constant-time access?"
+```
+
+Answer:
+
+```text
+Hash Map (Dictionary)
+```
+
+Example:
+
+```python
+song_catalog[song_id]
+user_profiles[user_id]
+```
+
+Average Complexity:
+
+```text
+Insert = O(1)
+
+Lookup = O(1)
+
+Delete = O(1)
+```
+
+---
+
+# 🎧 Spotify Design Answer
+
+A practical Spotify recommendation system would use multiple data structures:
+
+
+| Component            | Data Structure         | Complexity            |
+| -------------------- | ---------------------- | --------------------- |
+| User Lookup          | Hash Map               | O(1)                  |
+| Song Lookup          | Hash Map               | O(1)                  |
+| User History         | Hash Map + List        | O(1) lookup           |
+| Similar Songs        | Graph / Adjacency List | O(1) neighbour access |
+| Trending Songs       | Heap                   | O(log n) update       |
+| Embedding Search     | HNSW / FAISS           | ~O(log n)             |
+| Recommendation Cache | Redis Hash Map         | O(1)                  |
+
+
+---
+
+# 🎤 Strong Interview Answer
+
+```text
+If the requirement is constant-time retrieval of users, songs, or precomputed recommendations, I would use a Hash Map because it provides O(1) average lookup time.
+
+For similarity-based recommendations, modern systems typically store embeddings in an ANN index such as HNSW or FAISS, which provides near-logarithmic retrieval rather than true O(1).
+
+In production, Spotify would likely combine Hash Maps for metadata access and HNSW/FAISS for recommendation retrieval.
+```
+
+---
+
+# 🔥 Follow-Up Answer (Senior-Level)
+
+```text
+True recommendation generation cannot be O(1) because similarity search requires comparing vectors. To achieve near O(1) serving latency, recommendations are often precomputed offline and stored in a key-value store:
+
+user_id -> recommended_song_ids
+
+This allows recommendation retrieval in O(1) at serving time while the expensive ranking computations happen offline.
+```
+
