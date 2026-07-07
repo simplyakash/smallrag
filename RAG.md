@@ -365,17 +365,42 @@ BM25 introduces **TF saturation** so that repeated occurrences contribute **less
 
 For a query $Q$ and document $D$
 
-$
-\text{BM25}(D,Q)=
-\sum_{t \in Q}
-IDF(t)
-\cdot
-\frac{
-TF(t,D)\cdot(k_1+1)
-}{
-TF(t,D)+k_1\left(1-b+b\frac{|D|}{avgdl}\right)
-}
-$
+# 📐 BM25 Formula
+
+```text
+BM25(D,Q) = Σ IDF(t) × TFWeight(t,D)
+```
+
+where
+
+```text
+TFWeight(t,D) =
+      TF(t,D) × (k₁ + 1)
+------------------------------------
+TF(t,D) + k₁ × (1 - b + b × |D|/avgdl)
+```
+
+---
+
+# 📖 IDF Formula
+
+```text
+                 N - df + 0.5
+IDF(t) = log( -------------------- + 1 )
+                 df + 0.5
+```
+
+---
+
+# 📊 Complete BM25 Formula
+
+```text
+                 TF(t,D) × (k₁ + 1)
+Score(t,D) = IDF(t) × ------------------------------------
+                         TF(t,D) + k₁(1 - b + b|D|/avgdl)
+
+BM25(D,Q) = Σ Score(t,D)
+```
 
 where
 
@@ -607,41 +632,253 @@ BM25 normalizes scores using document length.
 
 # Role of Parameter **b**
 
+## 📌 Parameter **b** (Document Length Normalization)
+
 Typical value
 
-$
-b=0.75
-$
+```text
+b = 0.75
+```
 
-Meaning
+**Meaning**
 
-- $b=0$ → Ignore document length.
-- $b=1$ → Fully normalize by document length.
+- **b = 0**
+  - Ignore document length completely.
+  - Long and short documents are treated the same.
+  - No length normalization is applied.
+
+- **b = 1**
+  - Apply full document length normalization.
+  - Long documents are penalized more.
+  - Short documents receive relatively higher scores.
+
+- **b = 0.75 (Default)**
+  - Apply partial document length normalization.
+  - Balances the effect of document length.
+  - This is the value used in most search engines (e.g., Lucene, Elasticsearch).
 
 ---
 
-# Role of Parameter **k₁**
+### 📊 Intuition
+
+Suppose the average document length is
+
+```text
+100 words
+```
+
+Two documents contain the query term exactly **3 times**.
+
+| Document | Length | TF |
+|----------|--------:|---:|
+| Doc A | 100 words | 3 |
+| Doc B | 1000 words | 3 |
+
+Without length normalization (`b = 0`)
+
+```text
+Doc A Score = Doc B Score
+```
+
+With full length normalization (`b = 1`)
+
+```text
+Doc A Score > Doc B Score
+```
+
+because finding the same term **3 times in a 100-word document** is more significant than finding it **3 times in a 1000-word document**.
+
+---
+
+### 🎯 Interview Tip
+
+> The parameter **b** controls **document length normalization**.
+>
+> - **b = 0** → Ignore document length.
+> - **b = 1** → Fully normalize by document length.
+> - **b = 0.75** → Default value that provides a good balance between the two extremes.
+
+---
+
+## 📌 Parameter **k₁** (Term Frequency Saturation)
 
 Typical value
 
-$
-k_1=1.2 \text{ to } 2.0
-$
-
-Controls TF saturation.
-
-Small $k_1$
-
 ```text
-TF saturates quickly.
+k₁ = 1.2 to 2.0
 ```
 
-Large $k_1$
+Most search engines use a value around
 
 ```text
-TF grows more gradually.
+k₁ = 1.2
 ```
 
+or
+
+```text
+k₁ = 1.5
+```
+
+---
+
+## 🎯 What Does **k₁** Control?
+
+The parameter **k₁** controls **how much repeated occurrences of a word increase the BM25 score**.
+
+It determines **how quickly the Term Frequency (TF) contribution saturates**.
+
+Without **k₁**, every additional occurrence of a word would increase the score linearly.
+
+BM25 prevents this because repeating the same word many times does **not necessarily make a document more relevant**.
+
+---
+
+## 📈 Intuition
+
+Suppose the query is
+
+```text
+machine learning
+```
+
+### Document A
+
+```text
+learning
+```
+
+appears
+
+```text
+2 times
+```
+
+### Document B
+
+```text
+learning
+```
+
+appears
+
+```text
+50 times
+```
+
+Should Document B receive **25×** the score?
+
+**No.**
+
+After a certain point, additional repetitions provide very little extra evidence that the document is more relevant.
+
+This effect is called **TF Saturation**.
+
+---
+
+## 📊 Effect of Different **k₁** Values
+
+### Small **k₁**
+
+```text
+k₁ = 0.5
+```
+
+- TF saturates quickly.
+- The first few occurrences contribute the most.
+- Repeating the word many more times has very little effect.
+
+```text
+Score
+ ^
+ |        _______
+ |      /
+ |    /
+ |  /
+ |/
+ +------------------------> TF
+```
+
+---
+
+### Large **k₁**
+
+```text
+k₁ = 2.0
+```
+
+- TF saturates more slowly.
+- Additional occurrences continue increasing the score for longer.
+- High term frequencies have a greater influence.
+
+```text
+Score
+ ^
+ |             ________
+ |          __/
+ |       __/
+ |    __/
+ |__/
+ +------------------------> TF
+```
+
+---
+
+## 📊 Comparison
+
+| k₁ Value | Effect |
+|-----------|--------|
+| **0** | TF has almost no influence on ranking. |
+| **0.5** | TF saturates very quickly. |
+| **1.2** | Good balance (commonly used). |
+| **2.0** | TF has stronger influence before saturation. |
+| Very Large | Behaves more like raw Term Frequency (less saturation). |
+
+---
+
+## 🧠 Why Do We Need TF Saturation?
+
+Consider two documents.
+
+### Document A
+
+```text
+machine learning
+```
+
+appears
+
+```text
+5 times
+```
+
+### Document B
+
+```text
+machine learning
+```
+
+appears
+
+```text
+100 times
+```
+
+A simple TF-based algorithm would heavily favor Document B.
+
+However, after several occurrences, seeing the same word repeatedly doesn't add much new evidence about relevance.
+
+BM25 addresses this by reducing the impact of repeated occurrences through TF saturation.
+
+---
+
+## 🎯 Interview Tip
+
+> The parameter **k₁** controls **Term Frequency (TF) saturation** in BM25.
+>
+> - **Small k₁** → TF saturates quickly, so repeated words add little extra score.
+> - **Large k₁** → TF saturates more slowly, allowing repeated occurrences to contribute more.
+> - **Typical values are between 1.2 and 2.0**, with **1.2** being a common default in search engines like Lucene and Elasticsearch.
 ---
 
 # 📊 Worked Example
