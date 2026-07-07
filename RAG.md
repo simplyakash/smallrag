@@ -268,6 +268,616 @@ Hybrid search combines:
 1. Semantic vector search
 2. Keyword/BM25 search
 
+# 📚 BM25 (Best Matching 25)
+
+BM25 (**Best Matching 25**) is one of the most popular **lexical retrieval algorithms** used in:
+
+- 🔍 Search Engines
+- 📄 Information Retrieval
+- 🤖 Retrieval-Augmented Generation (RAG)
+- 📚 Document Search
+- 💬 Question Answering
+
+It ranks documents based on **how well their words match the user's query**.
+
+> **Definition:** BM25 is a probabilistic ranking algorithm that scores documents by considering **term frequency (TF)**, **inverse document frequency (IDF)**, and **document length normalization**.
+
+---
+
+# 🎯 Intuition
+
+Imagine you search
+
+```text
+"machine learning"
+```
+
+Suppose we have three documents.
+
+```text
+Doc 1
+Machine learning is amazing.
+
+Doc 2
+Machine learning learning learning learning learning.
+
+Doc 3
+I like deep learning.
+```
+
+Which document should rank highest?
+
+Intuitively,
+
+- ✅ Doc 1 contains both words naturally.
+- ⚠️ Doc 2 repeats **learning** many times but repetition shouldn't make it infinitely better.
+- ❌ Doc 3 is missing **machine**.
+
+BM25 is designed to rank **Doc 1 > Doc 2 > Doc 3**.
+
+---
+
+# 🤔 Why Not Just Count Matching Words?
+
+Suppose we only count occurrences.
+
+| Document | "learning" Count |
+|-----------|------------------:|
+| Doc 1 | 1 |
+| Doc 2 | 5 |
+
+Simple TF would say
+
+```text
+Doc 2 > Doc 1
+```
+
+But Doc 2 is simply repeating the same word.
+
+BM25 introduces **TF saturation** so that repeated occurrences contribute **less and less**.
+
+---
+
+# 🚀 BM25 Pipeline
+
+```text
+                 User Query
+                      │
+                      ▼
+             Tokenize Query Words
+                      │
+                      ▼
+        Compare Against Every Document
+                      │
+                      ▼
+      Compute BM25 Score for Each Document
+                      │
+                      ▼
+          Sort Documents by Score
+                      │
+                      ▼
+             Return Top K Results
+```
+
+---
+
+# 🧮 BM25 Formula
+
+For a query $Q$ and document $D$
+
+$
+\text{BM25}(D,Q)=
+\sum_{t \in Q}
+IDF(t)
+\cdot
+\frac{
+TF(t,D)\cdot(k_1+1)
+}{
+TF(t,D)+k_1\left(1-b+b\frac{|D|}{avgdl}\right)
+}
+$
+
+where
+
+| Symbol | Meaning |
+|---------|----------|
+| $TF(t,D)$ | Number of times term $t$ appears in document $D$ |
+| $IDF(t)$ | Importance of the term across all documents |
+| $|D|$ | Length of the document |
+| $avgdl$ | Average document length |
+| $k_1$ | TF saturation parameter |
+| $b$ | Length normalization parameter |
+
+---
+
+# 📖 Understanding Each Component
+
+## 1️⃣ Term Frequency (TF)
+
+Measures how often a word appears.
+
+Example
+
+```text
+Query
+
+machine learning
+```
+
+Document
+
+```text
+machine learning learning
+```
+
+TF values
+
+| Word | TF |
+|------|---:|
+| machine | 1 |
+| learning | 2 |
+
+More occurrences generally increase the score.
+
+However,
+
+BM25 prevents repeated words from increasing the score indefinitely.
+
+---
+
+# 2️⃣ Inverse Document Frequency (IDF)
+
+Some words appear everywhere.
+
+Example
+
+```text
+the
+is
+a
+```
+
+These words are not useful for ranking.
+
+Rare words are much more informative.
+
+Example
+
+```text
+transformer
+```
+
+BM25 assigns
+
+- Low IDF → Common words
+- High IDF → Rare words
+
+Typical formula
+
+$
+IDF(t)=
+\log
+\left(
+\frac{N-df+0.5}{df+0.5}
++1
+\right)
+$
+
+where
+
+| Symbol | Meaning |
+|---------|----------|
+| $N$ | Total documents |
+| $df$ | Documents containing the term |
+
+---
+
+# Example of IDF
+
+Suppose
+
+```text
+1,000 documents
+```
+
+Word
+
+```text
+the
+```
+
+appears in
+
+```text
+980 documents
+```
+
+Very common
+
+↓
+
+Small IDF
+
+---
+
+Word
+
+```text
+transformer
+```
+
+appears in
+
+```text
+5 documents
+```
+
+Very rare
+
+↓
+
+Large IDF
+
+---
+
+# 3️⃣ TF Saturation
+
+Suppose
+
+Document A
+
+```text
+learning
+```
+
+appears
+
+```text
+5 times
+```
+
+Document B
+
+```text
+learning
+```
+
+appears
+
+```text
+100 times
+```
+
+Should Document B receive **20×** the score?
+
+Probably not.
+
+BM25 uses a saturation curve.
+
+```text
+Score
+ ^
+ |
+ |              ________
+ |           __/
+ |        __/
+ |     __/
+ |___/
+ +------------------------>
+         TF
+```
+
+Initially,
+
+Increasing TF helps a lot.
+
+Later,
+
+Each additional occurrence contributes less.
+
+---
+
+# 4️⃣ Document Length Normalization
+
+Long documents naturally contain more words.
+
+Without normalization,
+
+Long documents would always receive higher scores.
+
+Example
+
+Document A
+
+```text
+50 words
+```
+
+Document B
+
+```text
+5000 words
+```
+
+Even random matches are more likely in Document B.
+
+BM25 normalizes scores using document length.
+
+---
+
+# Role of Parameter **b**
+
+Typical value
+
+$
+b=0.75
+$
+
+Meaning
+
+- $b=0$ → Ignore document length.
+- $b=1$ → Fully normalize by document length.
+
+---
+
+# Role of Parameter **k₁**
+
+Typical value
+
+$
+k_1=1.2 \text{ to } 2.0
+$
+
+Controls TF saturation.
+
+Small $k_1$
+
+```text
+TF saturates quickly.
+```
+
+Large $k_1$
+
+```text
+TF grows more gradually.
+```
+
+---
+
+# 📊 Worked Example
+
+Query
+
+```text
+deep learning
+```
+
+Documents
+
+```text
+Doc1:
+Deep learning is amazing.
+
+Doc2:
+Learning learning learning learning.
+
+Doc3:
+Deep neural networks.
+```
+
+Assume
+
+| Document | TF(deep) | TF(learning) |
+|-----------|----------:|-------------:|
+| Doc1 | 1 | 1 |
+| Doc2 | 0 | 4 |
+| Doc3 | 1 | 0 |
+
+BM25 considers
+
+- TF
+- IDF
+- Length normalization
+
+Likely ranking
+
+```text
+Doc1  ✅
+Doc2
+Doc3
+```
+
+Although Doc2 repeats **learning**, it completely misses **deep**.
+
+---
+
+# 🔍 BM25 vs TF-IDF
+
+| Feature | TF-IDF | BM25 |
+|----------|---------|-------|
+| Uses TF | ✅ | ✅ |
+| Uses IDF | ✅ | ✅ |
+| TF Saturation | ❌ | ✅ |
+| Length Normalization | Basic | Advanced |
+| Retrieval Accuracy | Good | Better |
+| Used in Modern Search Engines | Rarely | Very Common |
+
+BM25 can be viewed as an improved version of TF-IDF.
+
+---
+
+# 🤖 BM25 in RAG
+
+A Retrieval-Augmented Generation (RAG) pipeline often looks like this.
+
+```text
+              User Question
+                     │
+                     ▼
+              BM25 Retriever
+                     │
+             Top K Documents
+                     │
+                     ▼
+                  LLM
+                     │
+                     ▼
+              Final Answer
+```
+
+BM25 retrieves documents using **exact keyword matching**.
+
+---
+
+# ⚖️ BM25 vs Dense Retrieval
+
+| Feature | BM25 | Dense Retrieval |
+|----------|-------|-----------------|
+| Matching | Exact keywords | Semantic similarity |
+| Embeddings | ❌ No | ✅ Yes |
+| Neural Network | ❌ No | ✅ Yes |
+| Understands synonyms | ❌ Limited | ✅ Yes |
+| Fast | ✅ | Usually slower |
+| Training required | ❌ | ✅ |
+| Example | Elasticsearch, Lucene | DPR, Contriever, BGE, E5 |
+
+Example
+
+Query
+
+```text
+automobile
+```
+
+Document
+
+```text
+car
+```
+
+BM25
+
+```text
+No match ❌
+```
+
+Dense Retrieval
+
+```text
+Semantic match ✅
+```
+
+---
+
+# 🔀 Hybrid Search
+
+Modern retrieval systems often combine BM25 with dense retrieval.
+
+```text
+               User Query
+                    │
+        ┌───────────┴───────────┐
+        ▼                       ▼
+      BM25              Dense Retriever
+        │                       │
+        └───────────┬───────────┘
+                    ▼
+            Merge & Re-rank
+                    ▼
+               Top Documents
+```
+
+This combines:
+
+- BM25's strong lexical matching
+- Dense retrieval's semantic understanding
+
+---
+
+# 🌍 Where BM25 Is Used
+
+- 🔍 Search Engines
+- 📚 Elasticsearch
+- 📄 Apache Lucene
+- 🤖 RAG Pipelines
+- 📑 Enterprise Document Search
+- ⚖️ Legal Document Retrieval
+- 🏥 Medical Literature Search
+- 🎓 Academic Search Engines
+
+---
+
+# 🎯 Interview Questions
+
+## Q1. What is BM25?
+
+> BM25 (Best Matching 25) is a probabilistic lexical ranking algorithm that scores documents using **Term Frequency (TF)**, **Inverse Document Frequency (IDF)**, **TF saturation**, and **document length normalization**. It is widely used in search engines and retrieval systems.
+
+---
+
+## Q2. Why is BM25 better than TF-IDF?
+
+BM25 improves TF-IDF by:
+
+- Adding TF saturation so repeated words don't dominate the score.
+- Normalizing for document length.
+- Providing more robust document ranking in real-world search.
+
+---
+
+## Q3. What do the parameters $k_1$ and $b$ control?
+
+| Parameter | Purpose |
+|------------|---------|
+| $k_1$ | Controls how quickly TF saturates. Higher values allow TF to influence the score more before saturating. |
+| $b$ | Controls document length normalization. $0$ ignores length, while $1$ applies full normalization. |
+
+---
+
+## Q4. Does BM25 understand meaning?
+
+**No.**
+
+BM25 is a **lexical retrieval algorithm**.
+
+It matches words based on their exact terms (after tokenization and optional stemming), not on semantic meaning.
+
+Example
+
+```text
+Query
+
+car
+```
+
+Document
+
+```text
+automobile
+```
+
+BM25
+
+```text
+May not match ❌
+```
+
+Dense Retrieval
+
+```text
+Matches semantically ✅
+```
+
+---
+
+# 📝 Key Takeaways
+
+- BM25 is the most widely used **lexical retrieval algorithm**.
+- It extends TF-IDF by introducing **TF saturation** and **document length normalization**.
+- BM25 does **not** use embeddings or deep learning.
+- It excels at exact keyword matching and is a strong baseline for retrieval.
+- Modern RAG systems often combine **BM25** with **dense retrieval** to achieve both lexical precision and semantic understanding.
+
 ## Why use it?
 
 - Vector search captures meaning
